@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package proto;
+option go_package = "./proto";
+
+service NotificationService {
+    rpc SendEmail (SendEmailRequest) returns (NotificationResponse);
+    rpc SendSMS (SendSMSRequest) returns (NotificationResponse);
+    rpc SendPushNotification (SendPushNotificationRequest) returns (NotificationResponse);
+}
+
+message SendEmailRequest {
+    string to = 1;
+    string subject = 2;
+    string body = 3;
+    string template = 4;
+    map<string, string> template_data = 5;
+}
+
+message SendSMSRequest {
+    string phone_number = 1;
+    string message = 2;
+}
+
+message SendPushNotificationRequest {
+    string user_id = 1;
+    string title = 2;
+    string message = 3;
+    map<string, string> data = 4;
+}
+
+message NotificationResponse {
+    bool success = 1;
+    string message_id = 2;
+    string error = 3;
+}

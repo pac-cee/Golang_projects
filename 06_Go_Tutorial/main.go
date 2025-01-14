@@ -12,81 +12,97 @@ import (
 	"time"
 )
 
-// SECTION 1: Basic Concepts
-// ------------------------
+// SECTION 1: Basic Types and Structs
+// ---------------------------------
 
-// Custom type definitions
+// Person represents a basic struct with methods
 type Person struct {
 	Name string
 	Age  int
 }
 
-// Interface definition
-type Speaker interface {
-	Speak() string
-}
-
-// Method implementation
+// Speak demonstrates a method implementation
 func (p Person) Speak() string {
 	return fmt.Sprintf("Hello, I'm %s and I'm %d years old", p.Name, p.Age)
 }
 
-// SECTION 2: Variables and Data Types
-// ---------------------------------
+// SECTION 2: Interfaces
+// -------------------
+
+// Speaker defines behavior for types that can speak
+type Speaker interface {
+	Speak() string
+}
+
+// SECTION 3: Error Handling
+// -----------------------
+
+// CustomError demonstrates custom error types
+type CustomError struct {
+	Code    int
+	Message string
+}
+
+func (e *CustomError) Error() string {
+	return fmt.Sprintf("error %d: %s", e.Code, e.Message)
+}
+
+// SECTION 4: Basic Functions
+// ------------------------
 
 func basicTypes() {
-	// Basic variable declarations
+	// Variable declarations
 	var name string = "John"
 	age := 30 // Short declaration
 
 	// Constants
 	const Pi = 3.14159
 
-	// Multiple variable declaration
+	// Multiple variables
 	var (
 		isActive bool   = true
 		count    int    = 42
-		message  string = "Hello"
+		message  string = "Hello, Go!"
 	)
 
-	// Array and Slice
+	// Arrays and Slices
 	numbers := []int{1, 2, 3, 4, 5}
 	
-	// Map
+	// Maps
 	person := map[string]string{
 		"name": "Alice",
 		"city": "New York",
 	}
 
-	fmt.Printf("Basic types example: %v, %v, %v, %v, %v, %v\n",
-		name, age, Pi, isActive, numbers, person)
+	fmt.Printf("Basic types example: %v, %v, %v, %v, %v, %v, %v\n",
+		name, age, Pi, isActive, count, message, numbers)
+	fmt.Printf("Map example: %v\n", person)
 }
 
-// SECTION 3: Control Flow
-// ----------------------
+// SECTION 5: Control Flow
+// ---------------------
 
 func controlFlow() {
-	// If statement
+	// If-else
 	x := 10
 	if x > 5 {
 		fmt.Println("x is greater than 5")
-	} else if x < 5 {
-		fmt.Println("x is less than 5")
 	} else {
-		fmt.Println("x equals 5")
+		fmt.Println("x is less than or equal to 5")
 	}
 
-	// Switch statement
-	switch day := time.Now().Weekday(); day {
+	// Switch
+	day := time.Now().Weekday()
+	switch day {
 	case time.Saturday, time.Sunday:
-		fmt.Println("It's the weekend")
+		fmt.Println("It's the weekend!")
 	default:
 		fmt.Println("It's a weekday")
 	}
 
-	// For loop
-	for i := 0; i < 5; i++ {
-		fmt.Printf("Iteration %d\n", i)
+	// Loops
+	for i := 0; i < 3; i++ {
+		fmt.Printf("Loop %d\n", i)
 	}
 
 	// Range loop
@@ -96,36 +112,17 @@ func controlFlow() {
 	}
 }
 
-// SECTION 4: Functions
-// -------------------
+// SECTION 6: Error Handling Functions
+// --------------------------------
 
-// Function with multiple return values
 func divide(a, b float64) (float64, error) {
 	if b == 0 {
-		return 0, fmt.Errorf("division by zero")
+		return 0, &CustomError{
+			Code:    400,
+			Message: "division by zero",
+		}
 	}
 	return a / b, nil
-}
-
-// Variadic function
-func sum(numbers ...int) int {
-	total := 0
-	for _, num := range numbers {
-		total += num
-	}
-	return total
-}
-
-// SECTION 5: Error Handling
-// ------------------------
-
-type CustomError struct {
-	Code    int
-	Message string
-}
-
-func (e *CustomError) Error() string {
-	return fmt.Sprintf("error %d: %s", e.Code, e.Message)
 }
 
 func errorHandling() {
@@ -138,52 +135,52 @@ func errorHandling() {
 	}
 
 	// Custom error
-	err = &CustomError{
+	customErr := &CustomError{
 		Code:    404,
 		Message: "Not Found",
 	}
-	fmt.Printf("Custom error: %v\n", err)
+	fmt.Printf("Custom error: %v\n", customErr)
 }
 
-// SECTION 6: Concurrency
-// ---------------------
+// SECTION 7: Concurrency
+// --------------------
 
 func concurrencyExample() {
-	// Channels
+	// Basic channel communication
 	ch := make(chan string)
 	done := make(chan bool)
 
 	// Goroutine with channel
 	go func() {
-		for i := 0; i < 5; i++ {
-			ch <- fmt.Sprintf("message %d", i)
+		for i := 0; i < 3; i++ {
+			ch <- fmt.Sprintf("Message %d", i)
 			time.Sleep(time.Millisecond * 500)
 		}
 		close(ch)
 	}()
 
-	// Receive from channel
+	// Receiving goroutine
 	go func() {
 		for msg := range ch {
-			fmt.Printf("Received: %s\n", msg)
+			fmt.Println("Received:", msg)
 		}
 		done <- true
 	}()
 
-	<-done // Wait for completion
+	<-done
 }
 
 // Worker Pool pattern
 func workerPool(jobs <-chan int, results chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for job := range jobs {
-		results <- job * 2 // Simulate work
+		results <- job * 2
 		time.Sleep(time.Millisecond * 100)
 	}
 }
 
-// SECTION 7: HTTP Server
-// ---------------------
+// SECTION 8: HTTP Server
+// --------------------
 
 type APIServer struct {
 	router *http.ServeMux
@@ -202,18 +199,18 @@ func (s *APIServer) handleHello(w http.ResponseWriter, r *http.Request) {
 
 func (s *APIServer) Start() {
 	s.router.HandleFunc("/hello", s.handleHello)
+	log.Printf("Server starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", s.router))
 }
 
-// SECTION 8: Context Usage
+// SECTION 9: Context Usage
 // ----------------------
 
 func contextExample() {
-	// Create context with timeout
+	// Context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	// Simulate work with context
 	select {
 	case <-time.After(3 * time.Second):
 		fmt.Println("Work completed")
@@ -222,7 +219,7 @@ func contextExample() {
 	}
 }
 
-// SECTION 9: Database Operations
+// SECTION 10: Database Operations
 // ----------------------------
 
 type UserRepository struct {
@@ -239,79 +236,58 @@ func (r *UserRepository) CreateUser(user Person) error {
 	return err
 }
 
-// SECTION 10: File Operations
+// SECTION 11: File Operations
 // -------------------------
 
 func fileOperations() error {
-	// Write to file
+	// Writing to file
 	data := []byte("Hello, Go!")
 	if err := os.WriteFile("example.txt", data, 0644); err != nil {
-		return err
+		return fmt.Errorf("failed to write file: %w", err)
 	}
 
-	// Read from file
+	// Reading from file
 	content, err := os.ReadFile("example.txt")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read file: %w", err)
 	}
 	fmt.Printf("File content: %s\n", content)
 	return nil
 }
 
-// Main function demonstrating usage
+// Main function demonstrating all features
 func main() {
-	fmt.Println("Go Programming Tutorial")
-	fmt.Println("----------------------")
-
-	// Basic concepts
+	fmt.Println("\n=== Basic Types ===")
 	basicTypes()
+
+	fmt.Println("\n=== Control Flow ===")
 	controlFlow()
 
-	// Error handling
+	fmt.Println("\n=== Error Handling ===")
 	errorHandling()
 
-	// Concurrency
+	fmt.Println("\n=== Concurrency ===")
 	concurrencyExample()
 
-	// Worker pool example
-	const numJobs = 5
-	jobs := make(chan int, numJobs)
-	results := make(chan int, numJobs)
-	var wg sync.WaitGroup
-
-	// Start workers
-	for i := 0; i < 3; i++ {
-		wg.Add(1)
-		go workerPool(jobs, results, &wg)
-	}
-
-	// Send jobs
-	for i := 0; i < numJobs; i++ {
-		jobs <- i
-	}
-	close(jobs)
-
-	// Wait for workers
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	// Collect results
-	for result := range results {
-		fmt.Printf("Result: %d\n", result)
-	}
-
-	// Context example
+	fmt.Println("\n=== Context Example ===")
 	contextExample()
 
-	// File operations
+	fmt.Println("\n=== File Operations ===")
 	if err := fileOperations(); err != nil {
 		fmt.Printf("File operation error: %v\n", err)
 	}
 
-	// Start HTTP server
-	server := NewAPIServer()
-	fmt.Println("Starting HTTP server on :8080")
-	server.Start()
+	// Create and use a Person
+	person := Person{Name: "Alice", Age: 30}
+	fmt.Println("\n=== Person Example ===")
+	fmt.Println(person.Speak())
+
+	// Demonstrate interface usage
+	var speaker Speaker = person
+	fmt.Println(speaker.Speak())
+
+	fmt.Println("\n=== Server Example ===")
+	fmt.Println("Uncomment the following line to start the HTTP server:")
+	// server := NewAPIServer()
+	// server.Start()
 }

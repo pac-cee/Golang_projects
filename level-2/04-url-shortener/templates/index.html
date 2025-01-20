@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>URL Shortener</h1>
+        
+        <form action="/shorten" method="POST" class="shorten-form">
+            <input type="url" name="url" placeholder="Enter your URL here" required>
+            <button type="submit">Shorten</button>
+        </form>
+
+        <div class="urls-list">
+            <h2>Recent URLs</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Short URL</th>
+                        <th>Original URL</th>
+                        <th>Clicks</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .}}
+                    <tr>
+                        <td><a href="/{{.ShortCode}}" target="_blank">{{.ShortCode}}</a></td>
+                        <td class="long-url"><a href="{{.LongURL}}" target="_blank">{{.LongURL}}</a></td>
+                        <td>{{.Clicks}}</td>
+                        <td>{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

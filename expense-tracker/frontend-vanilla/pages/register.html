@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - ExpenseTracker</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Main Container -->
+    <div class="auth-container">
+        <div class="logo">
+            <i class="fas fa-wallet"></i>
+            <h1>ExpenseTracker</h1>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form" class="auth-form">
+            <h2>Create Account</h2>
+            <div class="auth-tabs">
+                <a href="login.html" class="tab">Login</a>
+                <a href="register.html" class="tab active">Register</a>
+            </div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <div class="password-input">
+                        <input type="password" id="registerPassword" required>
+                        <button type="button" class="password-toggle">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength-meter">
+                        <div class="strength-meter"></div>
+                        <span class="strength-text"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <div class="password-input">
+                        <input type="password" id="confirmPassword" required>
+                        <button type="button" class="password-toggle">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="auth-button">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+</body>
+</html>

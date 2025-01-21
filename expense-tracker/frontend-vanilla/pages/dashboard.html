@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ExpenseTracker</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Dashboard Container -->
+    <div id="dashboard" class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <h1>ExpenseTracker</h1>
+            </div>
+            <nav class="nav-links">
+                <ul>
+                    <li class="active"><a href="dashboard.html"><i class="fas fa-chart-line"></i>Dashboard</a></li>
+                    <li><a href="expenses.html"><i class="fas fa-receipt"></i>Expenses</a></li>
+                    <li><a href="categories.html"><i class="fas fa-tags"></i>Categories</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i>Settings</a></li>
+                    <li class="logout"><a href="#"><i class="fas fa-sign-out-alt"></i>Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <h2>Dashboard</h2>
+                <button id="addExpenseBtn" class="primary-btn">
+                    <i class="fas fa-plus"></i>
+                    Add Expense
+                </button>
+            </header>
+
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="card">
+                    <h3>Total Expenses</h3>
+                    <div class="amount">$2,450.00</div>
+                    <div class="period">This Month</div>
+                </div>
+                <div class="card">
+                    <h3>Monthly Budget</h3>
+                    <div class="amount">$3,000.00</div>
+                    <div class="period">$550.00 remaining</div>
+                </div>
+                <div class="card">
+                    <h3>Top Category</h3>
+                    <div class="amount">Food & Dining</div>
+                    <div class="period">$850.00 spent</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Monthly Spending</h3>
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Category Distribution</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="recent-transactions">
+                <h3>Recent Transactions</h3>
+                <div class="transactions-list">
+                    <!-- Transactions will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Expense Modal -->
+    <div id="addExpenseModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Add Expense</h2>
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label for="expenseDescription">Description</label>
+                    <input type="text" id="expenseDescription" required>
+                </div>
+                <div class="form-group">
+                    <label for="expenseAmount">Amount</label>
+                    <input type="number" id="expenseAmount" required>
+                </div>
+                <div class="form-group">
+                    <label for="expenseCategory">Category</label>
+                    <select id="expenseCategory" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="expenseDate">Date</label>
+                    <input type="date" id="expenseDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="expenseNotes">Notes (optional)</label>
+                    <textarea id="expenseNotes"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="secondary-btn" id="cancelExpense">Cancel</button>
+                    <button type="submit" class="primary-btn">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/expenses.js"></script>
+</body>
+</html>

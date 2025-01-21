@@ -7,9 +7,6 @@ const tabBtns = document.querySelectorAll('.tab-btn');
 const authTabs = document.querySelector('.auth-tabs');
 const togglePasswordBtns = document.querySelectorAll('.toggle-password');
 
-// API endpoints
-const API_URL = 'http://localhost:8080/api';
-
 // Password strength configuration
 const passwordStrengthConfig = {
     minLength: 8,
@@ -21,6 +18,181 @@ const passwordStrengthConfig = {
         hasLowercase: /[a-z]/
     }
 };
+
+// Password validation rules
+const passwordRules = {
+    minLength: 8,
+    maxLength: 32,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumber: true,
+    requireSpecial: true,
+    allowedSpecial: "!@#$%^&*(),.?\":{}|<>",
+    recommendedLength: 12,
+    uniqueCharsMin: 6,
+    noCommonPatterns: true,
+    commonPatterns: [
+        '123', '234', '345', '456', '567', '678', '789', '987', '876', '765', '654', '543', '432', '321',
+        'password', 'qwerty', 'asdfgh', 'zxcvbn'
+    ]
+};
+
+function calculatePasswordStrength(password) {
+    let score = 0;
+    const maxScore = 100;
+    
+    // Length score (30%)
+    const lengthScore = Math.min((password.length - passwordRules.minLength) / 
+        (passwordRules.recommendedLength - passwordRules.minLength), 1) * 30;
+    score += lengthScore;
+    
+    // Character variety score (40%)
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = new RegExp(`[${passwordRules.allowedSpecial}]`).test(password);
+    
+    score += hasUpper ? 10 : 0;
+    score += hasLower ? 10 : 0;
+    score += hasNumber ? 10 : 0;
+    score += hasSpecial ? 10 : 0;
+    
+    // Unique characters score (15%)
+    const uniqueChars = new Set(password).size;
+    const uniqueScore = Math.min((uniqueChars - passwordRules.uniqueCharsMin) / 
+        (passwordRules.recommendedLength - passwordRules.uniqueCharsMin), 1) * 15;
+    score += uniqueScore;
+    
+    // Pattern penalty (15%)
+    let patternPenalty = 0;
+    if (passwordRules.noCommonPatterns) {
+        for (const pattern of passwordRules.commonPatterns) {
+            if (password.toLowerCase().includes(pattern)) {
+                patternPenalty += 5;
+            }
+        }
+    }
+    score = Math.max(0, score - patternPenalty);
+    
+    // Additional bonuses
+    if (password.length >= passwordRules.recommendedLength && 
+        hasUpper && hasLower && hasNumber && hasSpecial && 
+        uniqueChars >= passwordRules.recommendedLength) {
+        score += 10; // Bonus for excellent password
+    }
+    
+    return Math.min(Math.round(score), maxScore);
+}
+
+function getPasswordFeedback(password) {
+    const feedback = [];
+    const strength = calculatePasswordStrength(password);
+    
+    // Basic requirements
+    if (password.length < passwordRules.minLength) {
+        feedback.push({
+            type: 'error',
+            message: `Add ${passwordRules.minLength - password.length} more characters`
+        });
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+        feedback.push({
+            type: 'error',
+            message: 'Add an uppercase letter'
+        });
+    }
+    
+    if (!/[a-z]/.test(password)) {
+        feedback.push({
+            type: 'error',
+            message: 'Add a lowercase letter'
+        });
+    }
+    
+    if (!/\d/.test(password)) {
+        feedback.push({
+            type: 'error',
+            message: 'Add a number'
+        });
+    }
+    
+    if (!new RegExp(`[${passwordRules.allowedSpecial}]`).test(password)) {
+        feedback.push({
+            type: 'error',
+            message: 'Add a special character'
+        });
+    }
+    
+    // Improvement suggestions
+    if (password.length < passwordRules.recommendedLength) {
+        feedback.push({
+            type: 'suggestion',
+            message: `Adding ${passwordRules.recommendedLength - password.length} more characters would make this stronger`
+        });
+    }
+    
+    const uniqueChars = new Set(password).size;
+    if (uniqueChars < passwordRules.uniqueCharsMin) {
+        feedback.push({
+            type: 'suggestion',
+            message: 'Try using more unique characters'
+        });
+    }
+    
+    // Check for common patterns
+    for (const pattern of passwordRules.commonPatterns) {
+        if (password.toLowerCase().includes(pattern)) {
+            feedback.push({
+                type: 'warning',
+                message: 'Avoid using common patterns'
+            });
+            break;
+        }
+    }
+    
+    return {
+        score: strength,
+        feedback: feedback,
+        strengthText: strength < 40 ? 'Weak' : 
+                     strength < 60 ? 'Fair' :
+                     strength < 80 ? 'Good' :
+                     strength < 90 ? 'Strong' : 'Excellent'
+    };
+}
+
+function validatePassword(password) {
+    const errors = [];
+    
+    if (password.length < passwordRules.minLength) {
+        errors.push(`Password must be at least ${passwordRules.minLength} characters long`);
+    }
+    
+    if (password.length > passwordRules.maxLength) {
+        errors.push(`Password must be less than ${passwordRules.maxLength} characters`);
+    }
+    
+    if (passwordRules.requireUppercase && !/[A-Z]/.test(password)) {
+        errors.push('Password must contain at least one uppercase letter');
+    }
+    
+    if (passwordRules.requireLowercase && !/[a-z]/.test(password)) {
+        errors.push('Password must contain at least one lowercase letter');
+    }
+    
+    if (passwordRules.requireNumber && !/\d/.test(password)) {
+        errors.push('Password must contain at least one number');
+    }
+    
+    if (passwordRules.requireSpecial && !new RegExp(`[${passwordRules.allowedSpecial}]`).test(password)) {
+        errors.push('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors: errors
+    };
+}
 
 // Tab switching
 tabBtns.forEach(btn => {
@@ -53,11 +225,11 @@ tabBtns.forEach(btn => {
     });
 });
 
-// Toggle password visibility
-togglePasswordBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        const input = btn.parentElement.querySelector('input');
-        const icon = btn.querySelector('i');
+// Password visibility toggle
+document.querySelectorAll('.password-toggle').forEach(button => {
+    button.addEventListener('click', (e) => {
+        const input = e.currentTarget.previousElementSibling;
+        const icon = e.currentTarget.querySelector('i');
         
         if (input.type === 'password') {
             input.type = 'text';
@@ -71,35 +243,46 @@ togglePasswordBtns.forEach(btn => {
     });
 });
 
-// Password strength meter
+// Password strength update
+const registerPassword = document.getElementById('register-password');
+if (registerPassword) {
+    registerPassword.addEventListener('input', (e) => {
+        updatePasswordStrength(e.target.value);
+    });
+}
+
+// Update password strength meter
 function updatePasswordStrength(password) {
     const strengthMeter = document.querySelector('.strength-meter');
     const strengthText = document.querySelector('.strength-text');
+    const feedbackList = document.querySelector('.password-feedback');
     
-    let score = 0;
-    let feedback = [];
+    if (!strengthMeter || !strengthText) return;
     
-    // Check patterns
-    if (password.length >= passwordStrengthConfig.minLength) score += 20;
-    if (passwordStrengthConfig.patterns.hasNumber.test(password)) score += 20;
-    if (passwordStrengthConfig.patterns.hasLetter.test(password)) score += 20;
-    if (passwordStrengthConfig.patterns.hasSpecial.test(password)) score += 20;
-    if (passwordStrengthConfig.patterns.hasUppercase.test(password) && 
-        passwordStrengthConfig.patterns.hasLowercase.test(password)) score += 20;
+    const result = getPasswordFeedback(password);
     
-    // Update meter
-    strengthMeter.style.setProperty('--strength', `${score}%`);
+    // Update strength meter
+    strengthMeter.style.setProperty('--strength', `${result.score}%`);
+    strengthMeter.className = `strength-meter ${result.strengthText.toLowerCase()}`;
     
-    // Update feedback
-    if (score < 40) {
-        strengthText.textContent = 'Weak password';
-        strengthText.style.color = 'var(--danger-color)';
-    } else if (score < 80) {
-        strengthText.textContent = 'Medium password';
-        strengthText.style.color = 'var(--warning-color)';
-    } else {
-        strengthText.textContent = 'Strong password';
-        strengthText.style.color = 'var(--success-color)';
+    // Update strength text
+    strengthText.textContent = result.strengthText;
+    strengthText.className = `strength-text ${result.strengthText.toLowerCase()}`;
+    
+    // Update feedback list
+    if (feedbackList) {
+        feedbackList.innerHTML = '';
+        result.feedback.forEach(item => {
+            const li = document.createElement('li');
+            li.className = `feedback-item ${item.type}`;
+            li.innerHTML = `
+                <i class="fas fa-${item.type === 'error' ? 'times' : 
+                                  item.type === 'warning' ? 'exclamation' : 
+                                  'info'}-circle"></i>
+                ${item.message}
+            `;
+            feedbackList.appendChild(li);
+        });
     }
 }
 
@@ -107,6 +290,33 @@ function updatePasswordStrength(password) {
 const passwordInput = registerForm.querySelector('input[type="password"]');
 passwordInput.addEventListener('input', (e) => {
     updatePasswordStrength(e.target.value);
+});
+
+// Update password input validation
+const passwordInputs = document.querySelectorAll('input[type="password"]');
+passwordInputs.forEach(input => {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'password-error';
+    input.parentElement.appendChild(errorDiv);
+    
+    input.addEventListener('input', (e) => {
+        const result = validatePassword(e.target.value);
+        const errorDiv = e.target.parentElement.querySelector('.password-error');
+        
+        if (!result.isValid) {
+            errorDiv.textContent = result.errors[0];
+            errorDiv.style.display = 'block';
+            e.target.setCustomValidity(result.errors[0]);
+        } else {
+            errorDiv.style.display = 'none';
+            e.target.setCustomValidity('');
+        }
+        
+        // Update password strength if this is a registration password
+        if (e.target.closest('#register-form')) {
+            updatePasswordStrength(e.target.value);
+        }
+    });
 });
 
 // Form submission animations
@@ -122,71 +332,17 @@ function stopLoading(form) {
     button.disabled = false;
 }
 
-// Login form submission
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    startLoading(loginForm);
-    
-    const email = loginForm.querySelector('input[type="email"]').value;
-    const password = loginForm.querySelector('input[type="password"]').value;
-    const rememberMe = loginForm.querySelector('#remember-me').checked;
-
-    try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password, rememberMe }),
-        });
-
-        if (!response.ok) {
-            throw new Error('Login failed');
-        }
-
-        const data = await response.json();
-        
-        if (rememberMe) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-        } else {
-            sessionStorage.setItem('token', data.token);
-            sessionStorage.setItem('user', JSON.stringify(data.user));
-        }
-        
-        // Show success message
-        notyf.success('Login successful!');
-        
-        // Animate transition to dashboard
-        authSection.classList.add('fade-out');
-        setTimeout(() => {
-            authSection.classList.add('hidden');
-            dashboardSection.classList.remove('hidden');
-            dashboardSection.classList.add('fade-in');
-            
-            // Update user info
-            document.getElementById('user-name').textContent = data.user.name;
-            
-            // Load dashboard data
-            loadDashboardData();
-        }, 300);
-    } catch (error) {
-        notyf.error('Invalid email or password');
-    } finally {
-        stopLoading(loginForm);
-    }
-});
-
 // Register form submission
 registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     startLoading(registerForm);
-    
-    const name = registerForm.querySelector('input[type="text"]').value;
-    const email = registerForm.querySelector('input[type="email"]').value;
-    const password = registerForm.querySelectorAll('input[type="password"]')[0].value;
-    const confirmPassword = registerForm.querySelectorAll('input[type="password"]')[1].value;
 
+    const name = document.getElementById('register-name').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const confirmPassword = document.getElementById('register-confirm-password').value;
+
+    // Validate password match
     if (password !== confirmPassword) {
         notyf.error('Passwords do not match');
         stopLoading(registerForm);
@@ -194,26 +350,97 @@ registerForm.addEventListener('submit', async (e) => {
     }
 
     try {
-        const response = await fetch(`${API_URL}/auth/register`, {
+        const response = await fetch(`${window.location.origin}/api/auth/register`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ name, email, password }),
+            body: JSON.stringify({
+                name,
+                email,
+                password
+            })
         });
 
-        if (!response.ok) {
-            throw new Error('Registration failed');
+        const data = await response.text(); // First get the response as text
+        let jsonData;
+        try {
+            jsonData = JSON.parse(data); // Try to parse it as JSON
+        } catch (err) {
+            console.error('Server response:', data); // Log the actual response
+            throw new Error('Invalid server response');
         }
 
-        // Show success message and switch to login
+        if (!response.ok) {
+            throw new Error(jsonData.error || 'Registration failed');
+        }
+
+        // Registration successful
         notyf.success('Registration successful! Please login.');
+        switchTab('login'); // Switch to login tab
         registerForm.reset();
-        tabBtns[0].click();
     } catch (error) {
-        notyf.error('Registration failed. Please try again.');
+        console.error('Registration error:', error);
+        notyf.error(error.message || 'Registration failed. Please try again.');
     } finally {
         stopLoading(registerForm);
+    }
+});
+
+// Login form submission
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    startLoading(loginForm);
+
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const rememberMe = document.getElementById('remember-me').checked;
+
+    try {
+        const response = await fetch(`${window.location.origin}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email,
+                password
+            })
+        });
+
+        const data = await response.text(); // First get the response as text
+        let jsonData;
+        try {
+            jsonData = JSON.parse(data); // Try to parse it as JSON
+        } catch (err) {
+            console.error('Server response:', data); // Log the actual response
+            throw new Error('Invalid server response');
+        }
+
+        if (!response.ok) {
+            throw new Error(jsonData.error || 'Login failed');
+        }
+
+        // Store the token
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('token', jsonData.token);
+        storage.setItem('user', JSON.stringify(jsonData.user));
+
+        // Update UI
+        authSection.style.display = 'none';
+        dashboardSection.style.display = 'block';
+        const dashboardLink = document.getElementById('dashboard-link');
+        if (dashboardLink) {
+            dashboardLink.style.display = 'block';
+        }
+
+        notyf.success('Login successful!');
+        loginForm.reset();
+    } catch (error) {
+        console.error('Login error:', error);
+        notyf.error(error.message || 'Login failed. Please try again.');
+    } finally {
+        stopLoading(loginForm);
     }
 });
 
@@ -234,6 +461,26 @@ document.querySelector('.logout').addEventListener('click', () => {
     }, 300);
     
     notyf.success('Logged out successfully');
+});
+
+// Check authentication status on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    const dashboardLink = document.getElementById('dashboard-link');
+    
+    if (token) {
+        authSection.style.display = 'none';
+        dashboardSection.style.display = 'block';
+        if (dashboardLink) {
+            dashboardLink.style.display = 'block';
+        }
+    } else {
+        authSection.style.display = 'block';
+        dashboardSection.style.display = 'none';
+        if (dashboardLink) {
+            dashboardLink.style.display = 'none';
+        }
+    }
 });
 
 // Check if user is already logged in
@@ -329,7 +576,7 @@ function openAuthWindow(provider, url) {
             authWindow.close();
             
             try {
-                const response = await fetch(`${API_URL}/auth/${provider.toLowerCase()}/callback`, {
+                const response = await fetch(`${window.location.origin}/api/auth/${provider.toLowerCase()}/callback`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -386,3 +633,48 @@ initSocialLogin();
 
 // Check if this is an OAuth callback
 handleOAuthCallback();
+
+// Initialize Notyf
+const notyf = new Notyf({
+    duration: 3000,
+    position: { x: 'right', y: 'top' },
+    types: [
+        {
+            type: 'success',
+            background: 'var(--success-color)',
+            icon: {
+                className: 'fas fa-check-circle',
+                tagName: 'i'
+            }
+        },
+        {
+            type: 'error',
+            background: 'var(--danger-color)',
+            icon: {
+                className: 'fas fa-times-circle',
+                tagName: 'i'
+            }
+        }
+    ]
+});
+
+function switchTab(tab) {
+    tabBtns.forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+    authTabs.dataset.active = tab;
+    if (tab === 'login') {
+        registerForm.classList.add('fade-out');
+        setTimeout(() => {
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            loginForm.classList.add('fade-in');
+        }, 200);
+    } else {
+        loginForm.classList.add('fade-out');
+        setTimeout(() => {
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+            registerForm.classList.add('fade-in');
+        }, 200);
+    }
+}

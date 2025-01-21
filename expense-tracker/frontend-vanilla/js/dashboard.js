@@ -1,154 +1,159 @@
-// DOM Elements
-const addExpenseBtn = document.getElementById('add-expense-btn');
-const expenseModal = document.getElementById('expense-modal');
-const expenseForm = document.getElementById('expense-form');
-const cancelExpenseBtn = document.getElementById('cancel-expense');
+import { expenses as expensesApi } from './api.js';
+import { notify, formatCurrency, formatDate, requireAuth, chartUtils } from './utils.js';
 
-// Load dashboard data
-async function loadDashboardData() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+// Initialize dashboard when document is ready
+document.addEventListener('DOMContentLoaded', () => {
+    if (!requireAuth()) return;
+    initializeDashboard();
+});
 
+async function initializeDashboard() {
+    await Promise.all([
+        loadSummaryData(),
+        loadExpenseCharts(),
+        loadRecentExpenses()
+    ]);
+}
+
+async function loadSummaryData() {
     try {
-        // Load summary data
-        const summaryResponse = await fetch(`${API_URL}/expenses/summary`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const summaryData = await summaryResponse.json();
-        updateSummaryCards(summaryData);
-
-        // Load recent expenses
-        const expensesResponse = await fetch(`${API_URL}/expenses?limit=5`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const expensesData = await expensesResponse.json();
-        updateRecentExpenses(expensesData);
-
-        // Update charts
-        updateCharts();
+        const response = await expensesApi.getSummary();
+        updateSummaryCards(response);
     } catch (error) {
-        console.error('Failed to load dashboard data:', error);
+        notify.error('Failed to load summary data');
+        console.error(error);
     }
 }
 
-// Update summary cards with data
 function updateSummaryCards(data) {
-    const cards = document.querySelectorAll('.summary-cards .card');
-    
-    // Total Expenses
-    cards[0].querySelector('.amount').textContent = formatCurrency(data.totalExpenses);
-    
-    // Average Daily
-    cards[1].querySelector('.amount').textContent = formatCurrency(data.averageDaily);
-    
-    // Highest Expense
-    cards[2].querySelector('.amount').textContent = formatCurrency(data.highestExpense);
-}
-
-// Update recent expenses list
-function updateRecentExpenses(expenses) {
-    const expenseList = document.querySelector('.expense-list');
-    expenseList.innerHTML = '';
-
-    expenses.forEach(expense => {
-        const expenseItem = document.createElement('div');
-        expenseItem.className = 'expense-item';
-        expenseItem.innerHTML = `
-            <div class="expense-info">
-                <h4>${expense.description}</h4>
-                <span class="category">${expense.category}</span>
-                <span class="date">${formatDate(expense.date)}</span>
-            </div>
-            <div class="expense-amount">${formatCurrency(expense.amount)}</div>
-        `;
-        expenseList.appendChild(expenseItem);
-    });
-}
-
-// Modal handlers
-addExpenseBtn.addEventListener('click', () => {
-    expenseModal.classList.remove('hidden');
-});
-
-cancelExpenseBtn.addEventListener('click', () => {
-    expenseModal.classList.add('hidden');
-    expenseForm.reset();
-});
-
-// Close modal when clicking outside
-expenseModal.addEventListener('click', (e) => {
-    if (e.target === expenseModal) {
-        expenseModal.classList.add('hidden');
-        expenseForm.reset();
+    // Update total expenses
+    const totalExpenses = document.getElementById('totalExpenses');
+    if (totalExpenses) {
+        totalExpenses.textContent = formatCurrency(data.totalExpenses);
     }
-});
 
-// Handle expense form submission
-expenseForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    const formData = new FormData(expenseForm);
-    const expenseData = {
-        description: formData.get('description'),
-        amount: parseFloat(formData.get('amount')),
-        category: formData.get('category'),
-        date: formData.get('date'),
-        notes: formData.get('notes')
-    };
-
-    try {
-        const response = await fetch(`${API_URL}/expenses`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(expenseData)
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to add expense');
+    // Update monthly spending
+    const monthlySpending = document.getElementById('monthlySpending');
+    if (monthlySpending) {
+        monthlySpending.textContent = formatCurrency(data.monthlyTotal);
+        const progress = (data.monthlyTotal / data.monthlyBudget) * 100;
+        const progressBar = monthlySpending.querySelector('.progress');
+        if (progressBar) {
+            progressBar.style.width = `${Math.min(progress, 100)}%`;
+            progressBar.style.backgroundColor = progress > 100 ? '#ef4444' : '#10b981';
         }
-
-        // Refresh dashboard data
-        loadDashboardData();
-        
-        // Close modal and reset form
-        expenseModal.classList.add('hidden');
-        expenseForm.reset();
-    } catch (error) {
-        alert('Failed to add expense. Please try again.');
     }
-});
 
-// Utility functions
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-    }).format(amount);
+    // Update category spending
+    const categorySpending = document.getElementById('topCategories');
+    if (categorySpending) {
+        categorySpending.innerHTML = data.categoryTotals
+            .slice(0, 3)
+            .map(cat => `
+                <div class="category-item">
+                    <span class="category-name">${cat.name}</span>
+                    <span class="category-amount">${formatCurrency(cat.total)}</span>
+                </div>
+            `).join('');
+    }
 }
 
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+async function loadExpenseCharts() {
+    try {
+        const [monthlyData, categoryData] = await Promise.all([
+            expensesApi.getMonthlyTrend(),
+            expensesApi.getCategoryDistribution()
+        ]);
+
+        createMonthlyTrendChart(monthlyData);
+        createCategoryDistributionChart(categoryData);
+    } catch (error) {
+        notify.error('Failed to load chart data');
+        console.error(error);
+    }
+}
+
+function createMonthlyTrendChart(data) {
+    const ctx = document.getElementById('monthlyTrendChart');
+    if (!ctx) return;
+
+    chartUtils.createChart(ctx, 'line', {
+        labels: data.map(d => d.month),
+        datasets: [{
+            label: 'Monthly Expenses',
+            data: data.map(d => d.total),
+            borderColor: '#3b82f6',
+            tension: 0.1
+        }]
+    }, {
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: value => formatCurrency(value)
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: context => formatCurrency(context.raw)
+                }
+            }
+        }
     });
 }
 
-// Navigation
-const navLinks = document.querySelectorAll('.nav-links li:not(.logout)');
-navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        navLinks.forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-        // TODO: Implement navigation to different sections
+function createCategoryDistributionChart(data) {
+    const ctx = document.getElementById('categoryDistributionChart');
+    if (!ctx) return;
+
+    chartUtils.createChart(ctx, 'doughnut', {
+        labels: data.map(d => d.category),
+        datasets: [{
+            data: data.map(d => d.total),
+            backgroundColor: chartUtils.colors
+        }]
+    }, {
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: context => formatCurrency(context.raw)
+                }
+            }
+        }
     });
-});
+}
+
+async function loadRecentExpenses() {
+    try {
+        const response = await expensesApi.getAll({ limit: 5, sortBy: 'date', sortOrder: 'desc' });
+        updateRecentExpenses(response.expenses);
+    } catch (error) {
+        notify.error('Failed to load recent expenses');
+        console.error(error);
+    }
+}
+
+function updateRecentExpenses(expenses) {
+    const recentExpensesList = document.getElementById('recentExpenses');
+    if (!recentExpensesList) return;
+
+    recentExpensesList.innerHTML = expenses.map(expense => `
+        <div class="expense-item">
+            <div class="expense-info">
+                <div class="expense-primary">
+                    <span class="expense-description">${expense.description}</span>
+                    <span class="expense-amount">${formatCurrency(expense.amount)}</span>
+                </div>
+                <div class="expense-secondary">
+                    <span class="expense-date">${formatDate(expense.date)}</span>
+                    <span class="expense-category" style="color: ${expense.category.color}">
+                        <i class="fas ${expense.category.icon}"></i>
+                        ${expense.category.name}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}

@@ -1,54 +1,82 @@
-// Theme handling
-const themeButtons = document.querySelectorAll('.theme-btn');
-const body = document.body;
+// Theme management module
+const theme = {
+    // Get current theme
+    get() {
+        return localStorage.getItem('theme') || 'light';
+    },
 
-// Initialize theme
-function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'system';
-    setTheme(savedTheme);
-    themeButtons.forEach(btn => {
-        if (btn.dataset.theme === savedTheme) {
-            btn.classList.add('active');
-        }
-    });
-}
+    // Set theme
+    set(mode) {
+        localStorage.setItem('theme', mode);
+        this.apply();
+    },
 
-// Set theme
-function setTheme(theme) {
-    localStorage.setItem('theme', theme);
-    
-    if (theme === 'system') {
-        // Check system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            body.className = 'dark-theme';
-        } else {
-            body.className = 'light-theme';
+    // Toggle between light and dark
+    toggle() {
+        const current = this.get();
+        this.set(current === 'light' ? 'dark' : 'light');
+    },
+
+    // Apply current theme to document
+    apply() {
+        const isDark = this.get() === 'dark';
+        document.documentElement.classList.toggle('dark', isDark);
+        
+        // Update theme toggle button if it exists
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('i');
+            if (icon) {
+                icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            }
         }
-    } else {
-        body.className = `${theme}-theme`;
+
+        // Update theme color meta tag
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+            metaThemeColor.content = isDark ? '#1a1a1a' : '#ffffff';
+        }
+
+        // Dispatch theme change event
+        window.dispatchEvent(new CustomEvent('themechange', {
+            detail: { theme: isDark ? 'dark' : 'light' }
+        }));
+    },
+
+    // Initialize theme system
+    init() {
+        // Apply theme on page load
+        this.apply();
+
+        // Add event listener to theme toggle button
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => this.toggle());
+        }
+
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQuery.addEventListener('change', e => {
+                if (!localStorage.getItem('theme')) {
+                    this.set(e.matches ? 'dark' : 'light');
+                }
+            });
+        }
+
+        // Add keyboard shortcut for theme toggle (Ctrl/Cmd + J)
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
+                e.preventDefault();
+                this.toggle();
+            }
+        });
     }
-
-    // Update active button
-    themeButtons.forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
-}
-
-// Theme button click handlers
-themeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        const theme = btn.dataset.theme;
-        setTheme(theme);
-    });
-});
-
-// Listen for system theme changes
-if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        if (localStorage.getItem('theme') === 'system') {
-            setTheme('system');
-        }
-    });
-}
+};
 
 // Initialize theme on page load
-initTheme();
+document.addEventListener('DOMContentLoaded', () => {
+    theme.init();
+});
+
+export default theme;

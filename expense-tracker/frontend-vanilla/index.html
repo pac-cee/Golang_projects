@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExpenseTracker</title>
+    <title>Expense Tracker</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
 </head>
-<body class="light-theme">
-    <div class="theme-switch">
-        <button class="theme-btn" data-theme="light"><i class="fas fa-sun"></i></button>
-        <button class="theme-btn" data-theme="dark"><i class="fas fa-moon"></i></button>
-        <button class="theme-btn" data-theme="system"><i class="fas fa-desktop"></i></button>
-    </div>
+<body>
+    <!-- Theme toggle button -->
+    <button class="theme-toggle" title="Switch theme">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Dashboard link (only visible when logged in) -->
+    <a href="dashboard.html" class="dashboard-link" id="dashboard-link" style="display: none;">
+        <i class="fas fa-chart-line"></i> Dashboard
+    </a>
+
     <div class="container">
         <!-- Auth Section -->
         <div id="auth-section" class="section">
@@ -30,119 +35,56 @@
                 <div class="auth-form-container">
                     <form id="login-form" class="auth-form">
                         <div class="form-group">
-                            <div class="input-group">
-                                <i class="fas fa-envelope"></i>
-                                <input type="email" required autocomplete="email">
-                                <label>Email</label>
-                            </div>
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" required>
                         </div>
                         <div class="form-group">
-                            <div class="input-group">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" required autocomplete="current-password">
-                                <label>Password</label>
-                                <button type="button" class="toggle-password">
+                            <label for="login-password">Password</label>
+                            <div class="password-input">
+                                <input type="password" id="login-password" required>
+                                <button type="button" class="password-toggle" title="Toggle password visibility">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                         </div>
-                        <div class="form-extras">
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="remember-me">
-                                <span class="checkmark"></span>
-                                Remember me
-                            </label>
-                            <a href="#" class="forgot-password">Forgot Password?</a>
+                        <div class="form-check">
+                            <input type="checkbox" id="remember-me">
+                            <label for="remember-me">Remember me</label>
                         </div>
-                        <button type="submit" class="auth-button">
-                            <span class="button-text">Login</span>
-                            <div class="button-loader"></div>
-                        </button>
-                        <div class="auth-divider">
-                            <span>or continue with</span>
-                        </div>
-                        <div class="social-login">
-                            <button type="button" class="social-btn google-btn" id="google-login">
-                                <img src="https://www.google.com/favicon.ico" alt="Google">
-                                <span>Google</span>
-                            </button>
-                            <button type="button" class="social-btn github-btn" id="github-login">
-                                <i class="fab fa-github"></i>
-                                <span>GitHub</span>
-                            </button>
-                            <button type="button" class="social-btn twitter-btn" id="twitter-login">
-                                <i class="fab fa-twitter"></i>
-                                <span>Twitter</span>
-                            </button>
-                        </div>
+                        <button type="submit" class="auth-button">Login</button>
                     </form>
                     <form id="register-form" class="auth-form hidden">
                         <div class="form-group">
-                            <div class="input-group">
-                                <i class="fas fa-user"></i>
-                                <input type="text" required autocomplete="name">
-                                <label>Full Name</label>
-                            </div>
+                            <label for="register-name">Full Name</label>
+                            <input type="text" id="register-name" required>
                         </div>
                         <div class="form-group">
-                            <div class="input-group">
-                                <i class="fas fa-envelope"></i>
-                                <input type="email" required autocomplete="email">
-                                <label>Email</label>
-                            </div>
+                            <label for="register-email">Email</label>
+                            <input type="email" id="register-email" required>
                         </div>
                         <div class="form-group">
-                            <div class="input-group">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$">
-                                <label>Password</label>
-                                <button type="button" class="toggle-password">
+                            <label for="register-password">Password</label>
+                            <div class="password-input">
+                                <input type="password" id="register-password" required>
+                                <button type="button" class="password-toggle" title="Toggle password visibility">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
-                            <div class="password-strength">
+                            <div class="password-strength-meter">
                                 <div class="strength-meter"></div>
                                 <span class="strength-text"></span>
                             </div>
                         </div>
                         <div class="form-group">
-                            <div class="input-group">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" required>
-                                <label>Confirm Password</label>
-                                <button type="button" class="toggle-password">
+                            <label for="register-confirm-password">Confirm Password</label>
+                            <div class="password-input">
+                                <input type="password" id="register-confirm-password" required>
+                                <button type="button" class="password-toggle" title="Toggle password visibility">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                         </div>
-                        <div class="form-extras">
-                            <label class="checkbox-container">
-                                <input type="checkbox" required>
-                                <span class="checkmark"></span>
-                                I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
-                            </label>
-                        </div>
-                        <button type="submit" class="auth-button">
-                            <span class="button-text">Create Account</span>
-                            <div class="button-loader"></div>
-                        </button>
-                        <div class="auth-divider">
-                            <span>or sign up with</span>
-                        </div>
-                        <div class="social-login">
-                            <button type="button" class="social-btn google-btn" id="google-signup">
-                                <img src="https://www.google.com/favicon.ico" alt="Google">
-                                <span>Google</span>
-                            </button>
-                            <button type="button" class="social-btn github-btn" id="github-signup">
-                                <i class="fab fa-github"></i>
-                                <span>GitHub</span>
-                            </button>
-                            <button type="button" class="social-btn twitter-btn" id="twitter-signup">
-                                <i class="fab fa-twitter"></i>
-                                <span>Twitter</span>
-                            </button>
-                        </div>
+                        <button type="submit" class="auth-button">Create Account</button>
                     </form>
                 </div>
             </div>
@@ -312,17 +254,17 @@
             <div class="modal-content">
                 <h2>Add Expense</h2>
                 <form id="expense-form">
-                    <input type="text" placeholder="Description" required>
-                    <input type="number" placeholder="Amount" required>
-                    <select required>
+                    <input type="text" id="expense-description" placeholder="Description" required>
+                    <input type="number" id="expense-amount" placeholder="Amount" required>
+                    <select id="expense-category" required>
                         <option value="">Select Category</option>
                         <option value="food">Food</option>
                         <option value="transport">Transport</option>
                         <option value="utilities">Utilities</option>
                         <option value="entertainment">Entertainment</option>
                     </select>
-                    <input type="date" required>
-                    <textarea placeholder="Notes (optional)"></textarea>
+                    <input type="date" id="expense-date" required>
+                    <textarea id="expense-notes" placeholder="Notes (optional)"></textarea>
                     <div class="modal-buttons">
                         <button type="button" class="secondary-btn" id="cancel-expense">Cancel</button>
                         <button type="submit" class="primary-btn">Save Expense</button>
@@ -334,6 +276,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <script src="js/config.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/dashboard.js"></script>

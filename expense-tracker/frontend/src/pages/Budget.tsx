@@ -1,85 +1,174 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Grid,
-  Paper,
+  Box,
   Typography,
   Button,
-  LinearProgress,
   Card,
   CardContent,
-  Box,
+  Grid,
+  LinearProgress,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { BudgetForm } from '../components/forms/BudgetForm';
+import { Budget } from '../types';
+import { useAppContext } from '../context/AppContext';
 
-const Budget = () => {
-  const [budgets] = useState([
-    {
-      id: '1',
-      category: 'Food & Dining',
-      amount: 500,
-      spent: 350,
-      period: 'monthly',
-    },
-    {
-      id: '2',
-      category: 'Transportation',
-      amount: 300,
-      spent: 200,
-      period: 'monthly',
-    },
-  ]);
+export const BudgetPage: React.FC = () => {
+  const { state, dispatch } = useAppContext();
+  const [openForm, setOpenForm] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
 
-  const calculateProgress = (spent: number, total: number) => {
-    return (spent / total) * 100;
+  const handleOpenForm = (budget?: Budget) => {
+    setSelectedBudget(budget || null);
+    setOpenForm(true);
   };
 
+  const handleCloseForm = () => {
+    setSelectedBudget(null);
+    setOpenForm(false);
+  };
+
+  const handleSubmit = async (data: Omit<Budget, 'id' | 'createdAt' | 'updatedAt' | 'spent'>) => {
+    try {
+      if (selectedBudget) {
+        // Update existing budget
+        const response = await fetch(`/api/budgets/${selectedBudget.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update budget');
+        }
+
+        const updatedBudget = await response.json();
+        dispatch({ type: 'UPDATE_BUDGET', payload: updatedBudget });
+      } else {
+        // Create new budget
+        const response = await fetch('/api/budgets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create budget');
+        }
+
+        const newBudget = await response.json();
+        dispatch({ type: 'ADD_BUDGET', payload: newBudget });
+      }
+
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error submitting budget:', error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/budgets/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete budget');
+      }
+
+      dispatch({ type: 'DELETE_BUDGET', payload: id });
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      try {
+        const response = await fetch('/api/budgets');
+        if (!response.ok) {
+          throw new Error('Failed to fetch budgets');
+        }
+
+        const budgets = await response.json();
+        dispatch({ type: 'SET_BUDGETS', payload: budgets });
+      } catch (error) {
+        console.error('Error fetching budgets:', error);
+      }
+    };
+
+    fetchBudgets();
+  }, [dispatch]);
+
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h4">Budget</Typography>
-        <Button variant="contained" startIcon={<AddIcon />}>
-          Set New Budget
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h4">Budgets</Typography>
+        <Button variant="contained" color="primary" onClick={() => handleOpenForm()}>
+          Add Budget
         </Button>
+      </Box>
+
+      <Grid container spacing={3}>
+        {state.budgets.map((budget) => (
+          <Grid item xs={12} sm={6} md={4} key={budget.id}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {budget.category}
+                </Typography>
+                <Typography color="textSecondary" gutterBottom>
+                  ${budget.amount.toFixed(2)}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ width: '100%', mr: 1 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={(budget.spent / budget.amount) * 100}
+                      color={budget.spent > budget.amount ? 'error' : 'primary'}
+                    />
+                  </Box>
+                  <Box sx={{ minWidth: 35 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      {((budget.spent / budget.amount) * 100).toFixed(0)}%
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="body2" color="textSecondary">
+                  Spent: ${budget.spent.toFixed(2)}
+                </Typography>
+                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => handleOpenForm(budget)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={() => handleDelete(budget.id)}
+                  >
+                    Delete
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
-      {budgets.map((budget) => (
-        <Grid item xs={12} md={6} lg={4} key={budget.id}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {budget.category}
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Monthly Budget: ${budget.amount}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Spent: ${budget.spent}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Remaining: ${budget.amount - budget.spent}
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant="determinate"
-                value={calculateProgress(budget.spent, budget.amount)}
-                color={calculateProgress(budget.spent, budget.amount) > 90 ? 'error' : 'primary'}
-                sx={{ height: 10, borderRadius: 5 }}
-              />
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <Button size="small" variant="outlined">
-                  Edit
-                </Button>
-                <Button size="small" variant="outlined" color="error">
-                  Delete
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
+      <BudgetForm
+        open={openForm}
+        onClose={handleCloseForm}
+        budget={selectedBudget}
+        onSubmit={handleSubmit}
+      />
+    </Box>
   );
 };
-
-export default Budget;

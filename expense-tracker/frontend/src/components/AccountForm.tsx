@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,139 +10,114 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
+  Box,
   InputAdornment,
 } from '@mui/material';
-import { Account } from '../types';
-import { useAppContext } from '../context/AppContext';
-import { accountApi } from '../services/api';
+import { Account, AccountType } from '../types';
 
 interface AccountFormProps {
   open: boolean;
   onClose: () => void;
-  account?: Account;
+  account?: Account | null;
+  onSubmit: (data: Omit<Account, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
 }
 
-const AccountForm = ({ open, onClose, account }: AccountFormProps) => {
-  const { state, dispatch } = useAppContext();
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'bank',
-    balance: '',
-  });
-  const [loading, setLoading] = useState(false);
+const initialFormData: Omit<Account, 'id' | 'createdAt' | 'updatedAt'> = {
+  name: '',
+  type: 'checking',
+  balance: 0,
+  currency: 'USD',
+};
+
+export const AccountForm: React.FC<AccountFormProps> = ({
+  open,
+  onClose,
+  account,
+  onSubmit,
+}) => {
+  const [formData, setFormData] = useState<Omit<Account, 'id' | 'createdAt' | 'updatedAt'>>(initialFormData);
 
   useEffect(() => {
     if (account) {
       setFormData({
         name: account.name,
         type: account.type,
-        balance: String(account.balance),
+        balance: account.balance,
+        currency: account.currency,
       });
+    } else {
+      setFormData(initialFormData);
     }
   }, [account]);
 
-  const handleChange = (field: string) => (event: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.balance) return;
-
-    try {
-      setLoading(true);
-      const data = {
-        ...formData,
-        balance: Number(formData.balance),
-      };
-
-      if (account) {
-        const response = await accountApi.update(account.id, data);
-        dispatch({ type: 'SET_ACCOUNTS', payload: state.accounts.map((a) => 
-          a.id === account.id ? response.data : a
-        )});
-      } else {
-        const response = await accountApi.create(data);
-        dispatch({ type: 'SET_ACCOUNTS', payload: [...state.accounts, response.data] });
-      }
-      onClose();
-    } catch (error) {
-      console.error('Error saving account:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Error saving account' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClose = () => {
-    setFormData({
-      name: '',
-      type: 'bank',
-      balance: '',
-    });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(formData);
     onClose();
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {account ? 'Edit Account' : 'Add New Account'}
-      </DialogTitle>
-      <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <form onSubmit={handleSubmit}>
+        <DialogTitle>{account ? 'Edit Account' : 'Add Account'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
             <TextField
-              fullWidth
-              label="Account Name"
+              label="Name"
               value={formData.name}
-              onChange={handleChange('name')}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
             />
-          </Grid>
-          <Grid item xs={12}>
+
             <FormControl fullWidth>
-              <InputLabel>Account Type</InputLabel>
+              <InputLabel>Type</InputLabel>
               <Select
                 value={formData.type}
-                label="Account Type"
-                onChange={handleChange('type')}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as AccountType })}
+                label="Type"
+                required
               >
-                <MenuItem value="bank">Bank Account</MenuItem>
+                <MenuItem value="checking">Checking</MenuItem>
+                <MenuItem value="savings">Savings</MenuItem>
+                <MenuItem value="credit">Credit</MenuItem>
                 <MenuItem value="cash">Cash</MenuItem>
-                <MenuItem value="mobile_money">Mobile Money</MenuItem>
+                <MenuItem value="investment">Investment</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12}>
+
             <TextField
-              fullWidth
-              label="Initial Balance"
+              label="Balance"
               type="number"
               value={formData.balance}
-              onChange={handleChange('balance')}
+              onChange={(e) => setFormData({ ...formData, balance: parseFloat(e.target.value) })}
               InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">$</InputAdornment>
-                ),
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
               }}
+              required
             />
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading || !formData.name || !formData.balance}
-        >
-          {loading ? 'Saving...' : 'Save'}
-        </Button>
-      </DialogActions>
+
+            <FormControl fullWidth>
+              <InputLabel>Currency</InputLabel>
+              <Select
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                label="Currency"
+                required
+              >
+                <MenuItem value="USD">USD</MenuItem>
+                <MenuItem value="EUR">EUR</MenuItem>
+                <MenuItem value="GBP">GBP</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="contained" color="primary">
+            {account ? 'Update' : 'Add'}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };
-
-export default AccountForm;

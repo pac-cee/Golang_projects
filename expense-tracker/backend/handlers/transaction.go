@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/expense-tracker/models"
+	"expense-tracker/models"
 )
 
 type TransactionHandler struct {

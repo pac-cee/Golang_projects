@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,198 +10,195 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
+  Box,
   InputAdornment,
 } from '@mui/material';
-import { Transaction } from '../types';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs, { Dayjs } from 'dayjs';
+import { Transaction, TransactionType, Category, Account } from '../types';
 import { useAppContext } from '../context/AppContext';
-import { transactionApi } from '../services/api';
 
 interface TransactionFormProps {
   open: boolean;
   onClose: () => void;
-  transaction?: Transaction;
+  transaction?: Transaction | null;
+  onSubmit: (data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
 }
 
-const TransactionForm = ({ open, onClose, transaction }: TransactionFormProps) => {
-  const { state, dispatch } = useAppContext();
-  const [formData, setFormData] = useState({
-    amount: '',
-    type: 'expense',
-    category: '',
-    subcategory: '',
-    account: '',
-    description: '',
-    date: new Date().toISOString().split('T')[0],
-  });
-  const [loading, setLoading] = useState(false);
+const initialFormData: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'> = {
+  amount: 0,
+  type: 'expense' as TransactionType,
+  category: '',
+  subcategory: '',
+  account: '',
+  description: '',
+  date: dayjs().toISOString(),
+};
+
+export const TransactionForm: React.FC<TransactionFormProps> = ({
+  open,
+  onClose,
+  transaction,
+  onSubmit,
+}) => {
+  const { state } = useAppContext();
+  const [formData, setFormData] = useState<Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>>(
+    initialFormData
+  );
 
   useEffect(() => {
     if (transaction) {
       setFormData({
-        amount: String(Math.abs(transaction.amount)),
-        type: transaction.amount < 0 ? 'expense' : 'income',
+        amount: transaction.amount,
+        type: transaction.type,
         category: transaction.category,
-        subcategory: transaction.subcategory || '',
+        subcategory: transaction.subcategory,
         account: transaction.account,
         description: transaction.description,
-        date: new Date(transaction.date).toISOString().split('T')[0],
+        date: transaction.date,
       });
+    } else {
+      setFormData(initialFormData);
     }
   }, [transaction]);
 
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      const amount = formData.type === 'expense' 
-        ? -Math.abs(Number(formData.amount))
-        : Math.abs(Number(formData.amount));
-
-      const data = {
-        ...formData,
-        amount,
-      };
-
-      if (transaction) {
-        const response = await transactionApi.update(transaction.id, data);
-        dispatch({ type: 'UPDATE_TRANSACTION', payload: response.data });
-      } else {
-        const response = await transactionApi.create(data);
-        dispatch({ type: 'ADD_TRANSACTION', payload: response.data });
-      }
-      onClose();
-    } catch (error) {
-      console.error('Error saving transaction:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Error saving transaction' });
-    } finally {
-      setLoading(false);
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(formData);
+    onClose();
   };
 
-  const handleChange = (field: string) => (event: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
-
-  const selectedCategory = state.categories.find((c) => c.id === formData.category);
+  const selectedCategory = state.categories.find(
+    (c: Category) => c.name === formData.category
+  );
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {transaction ? 'Edit Transaction' : 'Add New Transaction'}
-      </DialogTitle>
-      <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Amount"
-              type="number"
-              value={formData.amount}
-              onChange={handleChange('amount')}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">$</InputAdornment>,
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
+      <form onSubmit={handleSubmit}>
+        <DialogTitle>{transaction ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
             <FormControl fullWidth>
               <InputLabel>Type</InputLabel>
               <Select
                 value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionType })}
                 label="Type"
-                onChange={handleChange('type')}
+                required
               >
                 <MenuItem value="expense">Expense</MenuItem>
                 <MenuItem value="income">Income</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
+
             <FormControl fullWidth>
               <InputLabel>Category</InputLabel>
               <Select
                 value={formData.category}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    category: e.target.value,
+                    subcategory: '',
+                  });
+                }}
                 label="Category"
-                onChange={handleChange('category')}
+                required
               >
-                {state.categories.map((category) => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
+                {state.categories
+                  .filter((category: Category) => category.type === formData.type)
+                  .map((category: Category) => (
+                    <MenuItem key={category.id} value={category.name}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Subcategory</InputLabel>
-              <Select
-                value={formData.subcategory}
-                label="Subcategory"
-                onChange={handleChange('subcategory')}
-                disabled={!selectedCategory}
-              >
-                {selectedCategory?.subcategories.map((sub) => (
-                  <MenuItem key={sub} value={sub}>
-                    {sub}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
+
+            {selectedCategory && selectedCategory.subcategories.length > 0 && (
+              <FormControl fullWidth>
+                <InputLabel>Subcategory</InputLabel>
+                <Select
+                  value={formData.subcategory}
+                  onChange={(e) =>
+                    setFormData({ ...formData, subcategory: e.target.value })
+                  }
+                  label="Subcategory"
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {selectedCategory.subcategories.map((sub: string) => (
+                    <MenuItem key={sub} value={sub}>
+                      {sub}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
             <FormControl fullWidth>
               <InputLabel>Account</InputLabel>
               <Select
                 value={formData.account}
+                onChange={(e) => setFormData({ ...formData, account: e.target.value })}
                 label="Account"
-                onChange={handleChange('account')}
+                required
               >
-                {state.accounts.map((account) => (
-                  <MenuItem key={account.id} value={account.id}>
+                {state.accounts.map((account: Account) => (
+                  <MenuItem key={account.id} value={account.name}>
                     {account.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6}>
+
             <TextField
-              fullWidth
-              type="date"
-              label="Date"
-              value={formData.date}
-              onChange={handleChange('date')}
-              InputLabelProps={{ shrink: true }}
+              label="Amount"
+              type="number"
+              value={formData.amount}
+              onChange={(e) =>
+                setFormData({ ...formData, amount: parseFloat(e.target.value) })
+              }
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              }}
+              required
             />
-          </Grid>
-          <Grid item xs={12}>
+
             <TextField
-              fullWidth
               label="Description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               multiline
               rows={2}
-              value={formData.description}
-              onChange={handleChange('description')}
             />
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading}
-        >
-          {loading ? 'Saving...' : 'Save'}
-        </Button>
-      </DialogActions>
+
+            <DatePicker
+              label="Date"
+              value={formData.date ? dayjs(formData.date) : null}
+              onChange={(date: Dayjs | null) =>
+                setFormData({
+                  ...formData,
+                  date: date ? date.toISOString() : dayjs().toISOString(),
+                })
+              }
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                },
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="contained" color="primary">
+            {transaction ? 'Update' : 'Add'}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };
-
-export default TransactionForm;

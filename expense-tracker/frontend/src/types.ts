@@ -1,18 +1,12 @@
-export type AccountType = 'bank' | 'cash' | 'mobile_money';
 export type TransactionType = 'income' | 'expense';
+export type AccountType = 'checking' | 'savings' | 'credit' | 'cash' | 'investment';
 export type BudgetPeriod = 'monthly' | 'yearly' | 'custom';
+export type CategoryType = 'income' | 'expense';
 
 export interface BaseModel {
   id: string;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface Account extends BaseModel {
-  name: string;
-  type: AccountType;
-  balance: number;
-  currency: string;
 }
 
 export interface Transaction extends BaseModel {
@@ -27,7 +21,7 @@ export interface Transaction extends BaseModel {
 
 export interface Category extends BaseModel {
   name: string;
-  type: TransactionType;
+  type: CategoryType;
   subcategories: string[];
 }
 
@@ -35,32 +29,51 @@ export interface Budget extends BaseModel {
   amount: number;
   spent: number;
   category: string;
-  period: BudgetPeriod;
   startDate: string;
   endDate: string;
 }
 
-export interface TransactionReport {
-  totalIncome: number;
-  totalExpenses: number;
-  netAmount: number;
-  transactions: Transaction[];
-  categories: CategoryExpenseSummary[];
+export interface Account extends BaseModel {
+  name: string;
+  type: AccountType;
+  balance: number;
+  currency: string;
 }
 
 export interface CategoryExpenseSummary {
   category: string;
   amount: number;
-  count: number;
+  percentage: number;
+}
+
+export interface TransactionFilters {
+  startDate?: string;
+  endDate?: string;
+  type?: TransactionType;
+  category?: string;
+  account?: string;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+export interface TransactionReport {
+  totalIncome: number;
+  totalExpenses: number;
+  netIncome: number;
+  categoryBreakdown: CategoryExpenseSummary[];
 }
 
 export interface BudgetReport {
-  category: string;
-  budgetAmount: number;
-  spentAmount: number;
-  percentage: number;
-  startDate: string;
-  endDate: string;
+  totalBudget: number;
+  totalSpent: number;
+  remaining: number;
+  categories: {
+    category: string;
+    budget: number;
+    spent: number;
+    remaining: number;
+    percentage: number;
+  }[];
 }
 
 export interface AppState {
@@ -91,25 +104,3 @@ export type AppAction =
   | { type: 'DELETE_ACCOUNT'; payload: string }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null };
-
-export interface ChartData {
-  labels: string[];
-  datasets: {
-    label: string;
-    data: number[];
-    backgroundColor?: string | string[];
-    borderColor?: string | string[];
-    borderWidth?: number;
-    fill?: boolean;
-  }[];
-}
-
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-}
-
-export interface ApiError {
-  message: string;
-  errors?: Record<string, string>;
-}

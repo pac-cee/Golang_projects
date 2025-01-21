@@ -4,153 +4,115 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
+  TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Grid,
-  FormHelperText,
+  Box,
   InputAdornment,
 } from '@mui/material';
-import { Account } from '../../types';
+import { Account, AccountType } from '../../types';
 
 interface AccountFormProps {
   open: boolean;
   onClose: () => void;
-  account?: Account;
-  onSubmit: (account: Omit<Account, 'id' | 'balance' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  account?: Account | null;
+  onSubmit: (data: Omit<Account, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
 }
 
-const AccountForm: React.FC<AccountFormProps> = ({
+export const AccountForm: React.FC<AccountFormProps> = ({
   open,
   onClose,
   account,
   onSubmit,
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Account, 'id' | 'createdAt' | 'updatedAt'>>({
     name: '',
-    type: 'bank' as 'bank' | 'cash' | 'mobile_money',
-    initialBalance: '0',
+    type: 'checking',
+    balance: 0,
+    currency: 'USD',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (account) {
       setFormData({
         name: account.name,
         type: account.type,
-        initialBalance: account.balance.toString(),
+        balance: account.balance,
+        currency: account.currency,
       });
     } else {
       setFormData({
         name: '',
-        type: 'bank',
-        initialBalance: '0',
+        type: 'checking',
+        balance: 0,
+        currency: 'USD',
       });
     }
   }, [account]);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Please enter an account name';
-    }
-    if (
-      !formData.initialBalance ||
-      isNaN(Number(formData.initialBalance))
-    ) {
-      newErrors.initialBalance = 'Please enter a valid initial balance';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      await onSubmit({
-        name: formData.name.trim(),
-        type: formData.type,
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error submitting account:', error);
-    }
+    await onSubmit(formData);
+    onClose();
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{account ? 'Edit Account' : 'Add Account'}</DialogTitle>
       <form onSubmit={handleSubmit}>
+        <DialogTitle>{account ? 'Edit Account' : 'Add Account'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Account Name"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  if (errors.name) {
-                    setErrors({ ...errors, name: '' });
-                  }
-                }}
-                error={!!errors.name}
-                helperText={errors.name}
-              />
-            </Grid>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+            <TextField
+              label="Name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
 
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Account Type</InputLabel>
-                <Select
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      type: e.target.value as 'bank' | 'cash' | 'mobile_money',
-                    })
-                  }
-                  label="Account Type"
-                >
-                  <MenuItem value="bank">Bank Account</MenuItem>
-                  <MenuItem value="cash">Cash</MenuItem>
-                  <MenuItem value="mobile_money">Mobile Money</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+            <FormControl fullWidth>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as AccountType })}
+                label="Type"
+                required
+              >
+                <MenuItem value="checking">Checking</MenuItem>
+                <MenuItem value="savings">Savings</MenuItem>
+                <MenuItem value="credit">Credit</MenuItem>
+                <MenuItem value="cash">Cash</MenuItem>
+                <MenuItem value="investment">Investment</MenuItem>
+              </Select>
+            </FormControl>
 
-            {!account && (
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Initial Balance"
-                  type="number"
-                  value={formData.initialBalance}
-                  onChange={(e) => {
-                    setFormData({ ...formData, initialBalance: e.target.value });
-                    if (errors.initialBalance) {
-                      setErrors({ ...errors, initialBalance: '' });
-                    }
-                  }}
-                  error={!!errors.initialBalance}
-                  helperText={errors.initialBalance}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                  }}
-                />
-              </Grid>
-            )}
-          </Grid>
+            <TextField
+              label="Balance"
+              type="number"
+              value={formData.balance}
+              onChange={(e) => setFormData({ ...formData, balance: parseFloat(e.target.value) })}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              }}
+              required
+            />
+
+            <FormControl fullWidth>
+              <InputLabel>Currency</InputLabel>
+              <Select
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                label="Currency"
+                required
+              >
+                <MenuItem value="USD">USD</MenuItem>
+                <MenuItem value="EUR">EUR</MenuItem>
+                <MenuItem value="GBP">GBP</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
@@ -162,5 +124,3 @@ const AccountForm: React.FC<AccountFormProps> = ({
     </Dialog>
   );
 };
-
-export default AccountForm;

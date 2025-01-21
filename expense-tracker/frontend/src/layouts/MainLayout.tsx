@@ -23,7 +23,11 @@ import {
 
 const drawerWidth = 240;
 
-const MainLayout = () => {
+interface MainLayoutProps {
+  children: React.ReactNode;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -130,6 +134,7 @@ const MainLayout = () => {
       >
         <Toolbar />
         <Outlet />
+        {children}
       </Box>
     </Box>
   );

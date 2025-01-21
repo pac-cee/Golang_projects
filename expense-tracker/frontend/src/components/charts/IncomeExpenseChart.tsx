@@ -1,5 +1,4 @@
 import React from 'react';
-import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -8,7 +7,10 @@ import {
   Title,
   Tooltip,
   Legend,
+  ChartOptions,
+  Scale,
 } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
 import { Box, useTheme } from '@mui/material';
 
 ChartJS.register(
@@ -20,48 +22,38 @@ ChartJS.register(
   Legend
 );
 
-interface ChartData {
-  date: string;
-  income: number;
-  expenses: number;
-}
-
 interface IncomeExpenseChartProps {
-  data: ChartData[];
+  data: {
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      backgroundColor: string[];
+      borderColor: string[];
+      borderWidth: number;
+    }[];
+  };
 }
 
-const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ data }) => {
+export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ data }) => {
   const theme = useTheme();
 
-  const chartData = {
-    labels: data.map((item) => {
-      const [year, month] = item.date.split('-');
-      return `${new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', {
-        month: 'short',
-      })} ${year}`;
-    }),
-    datasets: [
-      {
-        label: 'Income',
-        data: data.map((item) => item.income),
-        backgroundColor: theme.palette.success.main,
-        borderColor: theme.palette.success.dark,
-        borderWidth: 1,
-      },
-      {
-        label: 'Expenses',
-        data: data.map((item) => item.expenses),
-        backgroundColor: theme.palette.error.main,
-        borderColor: theme.palette.error.dark,
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const options = {
+  const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: theme.palette.divider,
+        },
+        ticks: {
+          color: theme.palette.text.secondary,
+          callback: function(this: Scale, value: string | number) {
+            return `$${typeof value === 'number' ? value.toFixed(0) : value}`;
+          },
+        },
+      },
       x: {
         grid: {
           display: false,
@@ -71,35 +63,20 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ data }) => {
           color: theme.palette.text.secondary,
         },
       },
-      y: {
-        grid: {
-          color: theme.palette.divider,
-        },
-        ticks: {
-          color: theme.palette.text.secondary,
-          callback: (value: number) => `$${value.toFixed(0)}`,
-        },
-      },
     },
     plugins: {
       legend: {
         position: 'top' as const,
-        align: 'end' as const,
         labels: {
-          color: theme.palette.text.primary,
-          font: {
-            size: 12,
-          },
-          boxWidth: 12,
+          color: theme.palette.text.secondary,
         },
       },
-      tooltip: {
-        callbacks: {
-          label: (context: any) => {
-            const label = context.dataset.label || '';
-            const value = context.raw || 0;
-            return `${label}: $${value.toFixed(2)}`;
-          },
+      title: {
+        display: true,
+        text: 'Income vs Expenses',
+        color: theme.palette.text.primary,
+        font: {
+          size: 16,
         },
       },
     },
@@ -107,9 +84,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ data }) => {
 
   return (
     <Box width="100%" height="100%">
-      <Bar data={chartData} options={options} />
+      <Bar data={data} options={options} />
     </Box>
   );
 };
-
-export default IncomeExpenseChart;

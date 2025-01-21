@@ -1,189 +1,155 @@
-import { useState } from 'react';
+import React from 'react';
 import {
-  Grid,
-  TextField,
+  Box,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Button,
-  Box,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs, { Dayjs } from 'dayjs';
+import { TransactionType, TransactionFilters, Category, Account } from '../../types';
 import { useAppContext } from '../../context/AppContext';
 
-interface FilterValues {
-  startDate: Date | null;
-  endDate: Date | null;
-  type: string;
-  category: string;
-  account: string;
-  minAmount: string;
-  maxAmount: string;
-}
-
 interface TransactionFiltersProps {
-  onFilter: (filters: FilterValues) => void;
+  filters: TransactionFilters;
+  onFilterChange: (filters: TransactionFilters) => void;
 }
 
-const TransactionFilters = ({ onFilter }: TransactionFiltersProps) => {
+export const TransactionFiltersComponent: React.FC<TransactionFiltersProps> = ({
+  filters,
+  onFilterChange,
+}) => {
   const { state } = useAppContext();
-  const [filters, setFilters] = useState<FilterValues>({
-    startDate: null,
-    endDate: null,
-    type: '',
-    category: '',
-    account: '',
-    minAmount: '',
-    maxAmount: '',
-  });
 
-  const handleChange = (field: keyof FilterValues) => (event: any) => {
-    const value = event.target.value;
-    setFilters((prev) => ({
-      ...prev,
+  const handleFilterChange = (
+    field: keyof TransactionFilters,
+    value: string | number | undefined
+  ) => {
+    onFilterChange({
+      ...filters,
       [field]: value,
-    }));
-  };
-
-  const handleDateChange = (field: 'startDate' | 'endDate') => (date: Date | null) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: date,
-    }));
-  };
-
-  const handleApplyFilters = () => {
-    onFilter(filters);
-  };
-
-  const handleResetFilters = () => {
-    setFilters({
-      startDate: null,
-      endDate: null,
-      type: '',
-      category: '',
-      account: '',
-      minAmount: '',
-      maxAmount: '',
-    });
-    onFilter({
-      startDate: null,
-      endDate: null,
-      type: '',
-      category: '',
-      account: '',
-      minAmount: '',
-      maxAmount: '',
     });
   };
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6} md={3}>
-          <DatePicker
-            label="Start Date"
-            value={filters.startDate}
-            onChange={handleDateChange('startDate')}
-            slotProps={{ textField: { fullWidth: true } }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <DatePicker
-            label="End Date"
-            value={filters.endDate}
-            onChange={handleDateChange('endDate')}
-            slotProps={{ textField: { fullWidth: true } }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Type</InputLabel>
-            <Select
-              value={filters.type}
-              label="Type"
-              onChange={handleChange('type')}
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="income">Income</MenuItem>
-              <MenuItem value="expense">Expense</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={filters.category}
-              label="Category"
-              onChange={handleChange('category')}
-            >
-              <MenuItem value="">All</MenuItem>
-              {state.categories.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <DatePicker
+          label="Start Date"
+          value={filters.startDate ? dayjs(filters.startDate) : null}
+          onChange={(date: Dayjs | null) =>
+            handleFilterChange('startDate', date?.toISOString())
+          }
+          slotProps={{
+            textField: {
+              fullWidth: true,
+            },
+          }}
+        />
+
+        <DatePicker
+          label="End Date"
+          value={filters.endDate ? dayjs(filters.endDate) : null}
+          onChange={(date: Dayjs | null) =>
+            handleFilterChange('endDate', date?.toISOString())
+          }
+          slotProps={{
+            textField: {
+              fullWidth: true,
+            },
+          }}
+        />
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <FormControl fullWidth>
+          <InputLabel>Type</InputLabel>
+          <Select
+            value={filters.type || ''}
+            onChange={(e) =>
+              handleFilterChange('type', e.target.value as TransactionType)
+            }
+            label="Type"
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="expense">Expense</MenuItem>
+            <MenuItem value="income">Income</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <InputLabel>Category</InputLabel>
+          <Select
+            value={filters.category || ''}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            label="Category"
+          >
+            <MenuItem value="">All</MenuItem>
+            {state.categories
+              .filter((category: Category) =>
+                filters.type ? category.type === filters.type : true
+              )
+              .map((category: Category) => (
+                <MenuItem key={category.id} value={category.name}>
                   {category.name}
                 </MenuItem>
               ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Account</InputLabel>
-            <Select
-              value={filters.account}
-              label="Account"
-              onChange={handleChange('account')}
-            >
-              <MenuItem value="">All</MenuItem>
-              {state.accounts.map((account) => (
-                <MenuItem key={account.id} value={account.id}>
-                  {account.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Min Amount"
-            type="number"
-            value={filters.minAmount}
-            onChange={handleChange('minAmount')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Max Amount"
-            type="number"
-            value={filters.maxAmount}
-            onChange={handleChange('maxAmount')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="contained"
-              onClick={handleApplyFilters}
-              fullWidth
-            >
-              Apply Filters
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={handleResetFilters}
-              fullWidth
-            >
-              Reset
-            </Button>
-          </Box>
-        </Grid>
-      </Grid>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <InputLabel>Account</InputLabel>
+          <Select
+            value={filters.account || ''}
+            onChange={(e) => handleFilterChange('account', e.target.value)}
+            label="Account"
+          >
+            <MenuItem value="">All</MenuItem>
+            {state.accounts.map((account: Account) => (
+              <MenuItem key={account.id} value={account.name}>
+                {account.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <TextField
+          label="Min Amount"
+          type="number"
+          value={filters.minAmount || ''}
+          onChange={(e) =>
+            handleFilterChange(
+              'minAmount',
+              e.target.value ? Number(e.target.value) : undefined
+            )
+          }
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+          }}
+          fullWidth
+        />
+
+        <TextField
+          label="Max Amount"
+          type="number"
+          value={filters.maxAmount || ''}
+          onChange={(e) =>
+            handleFilterChange(
+              'maxAmount',
+              e.target.value ? Number(e.target.value) : undefined
+            )
+          }
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+          }}
+          fullWidth
+        />
+      </Box>
     </Box>
   );
 };
-
-export default TransactionFilters;

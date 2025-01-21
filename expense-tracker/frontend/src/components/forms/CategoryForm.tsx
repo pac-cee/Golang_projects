@@ -4,84 +4,65 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
-  Grid,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
   IconButton,
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import { Category } from '../../types';
+import { Category, CategoryType } from '../../types';
 
 interface CategoryFormProps {
   open: boolean;
   onClose: () => void;
-  category?: Category;
-  onSubmit: (category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  category?: Category | null;
+  onSubmit: (data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
 }
 
-const CategoryForm: React.FC<CategoryFormProps> = ({
+const initialFormData: Omit<Category, 'id' | 'createdAt' | 'updatedAt'> = {
+  name: '',
+  type: 'expense',
+  subcategories: [],
+};
+
+export const CategoryForm: React.FC<CategoryFormProps> = ({
   open,
   onClose,
   category,
   onSubmit,
 }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    subcategories: [] as string[],
-  });
+  const [formData, setFormData] = useState<Omit<Category, 'id' | 'createdAt' | 'updatedAt'>>(
+    initialFormData
+  );
   const [newSubcategory, setNewSubcategory] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (category) {
       setFormData({
         name: category.name,
+        type: category.type,
         subcategories: [...category.subcategories],
       });
     } else {
-      setFormData({
-        name: '',
-        subcategories: [],
-      });
+      setFormData(initialFormData);
     }
   }, [category]);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Please enter a category name';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      await onSubmit({
-        name: formData.name.trim(),
-        subcategories: formData.subcategories,
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error submitting category:', error);
-    }
+    await onSubmit(formData);
+    onClose();
   };
 
   const handleAddSubcategory = () => {
-    if (newSubcategory.trim() && !formData.subcategories.includes(newSubcategory.trim())) {
+    if (newSubcategory.trim()) {
       setFormData({
         ...formData,
         subcategories: [...formData.subcategories, newSubcategory.trim()],
@@ -91,71 +72,60 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
   };
 
   const handleRemoveSubcategory = (index: number) => {
-    const newSubcategories = formData.subcategories.filter((_, i) => i !== index);
     setFormData({
       ...formData,
-      subcategories: newSubcategories,
+      subcategories: formData.subcategories.filter((_, i) => i !== index),
     });
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{category ? 'Edit Category' : 'Add Category'}</DialogTitle>
       <form onSubmit={handleSubmit}>
+        <DialogTitle>{category ? 'Edit Category' : 'Add Category'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Category Name"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  if (errors.name) {
-                    setErrors({ ...errors, name: '' });
-                  }
-                }}
-                error={!!errors.name}
-                helperText={errors.name}
-              />
-            </Grid>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+            <TextField
+              label="Name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
 
-            <Grid item xs={12}>
-              <Grid container spacing={1}>
-                <Grid item xs>
-                  <TextField
-                    fullWidth
-                    label="Add Subcategory"
-                    value={newSubcategory}
-                    onChange={(e) => setNewSubcategory(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddSubcategory();
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleAddSubcategory}
-                    startIcon={<AddIcon />}
-                    sx={{ height: '56px' }}
-                  >
-                    Add
-                  </Button>
-                </Grid>
-              </Grid>
-            </Grid>
+            <FormControl fullWidth>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as CategoryType })}
+                label="Type"
+                required
+              >
+                <MenuItem value="expense">Expense</MenuItem>
+                <MenuItem value="income">Income</MenuItem>
+              </Select>
+            </FormControl>
 
-            <Grid item xs={12}>
+            <Box>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                  label="Add Subcategory"
+                  value={newSubcategory}
+                  onChange={(e) => setNewSubcategory(e.target.value)}
+                  fullWidth
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleAddSubcategory}
+                  disabled={!newSubcategory.trim()}
+                >
+                  Add
+                </Button>
+              </Box>
+
               <List>
                 {formData.subcategories.map((subcategory, index) => (
-                  <ListItem key={index}>
-                    <ListItemText primary={subcategory} />
-                    <ListItemSecondaryAction>
+                  <ListItem
+                    key={index}
+                    secondaryAction={
                       <IconButton
                         edge="end"
                         aria-label="delete"
@@ -163,12 +133,14 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
                       >
                         <DeleteIcon />
                       </IconButton>
-                    </ListItemSecondaryAction>
+                    }
+                  >
+                    <ListItemText primary={subcategory} />
                   </ListItem>
                 ))}
               </List>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
@@ -180,5 +152,3 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
     </Dialog>
   );
 };
-
-export default CategoryForm;

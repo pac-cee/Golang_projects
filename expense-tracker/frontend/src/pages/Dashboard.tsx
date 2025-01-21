@@ -11,8 +11,8 @@ import { styled } from '@mui/material/styles';
 import { useAppContext } from '../context/AppContext';
 import { reportApi } from '../services/api';
 import ExpensePieChart from '../components/charts/ExpensePieChart';
-import IncomeExpenseChart from '../components/charts/IncomeExpenseChart';
-import TrendLineChart from '../components/charts/TrendLineChart';
+import { IncomeExpenseChart } from '../components/charts/IncomeExpenseChart';
+import { TrendLineChart } from '../components/charts/TrendLineChart';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -79,6 +79,40 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
+  const chartData = {
+    labels: monthlyData.map(item => item.date),
+    datasets: [
+      {
+        label: 'Income',
+        data: monthlyData.map(item => item.income),
+        backgroundColor: [theme.palette.success.main],
+        borderColor: [theme.palette.success.dark],
+        borderWidth: 1,
+      },
+      {
+        label: 'Expenses',
+        data: monthlyData.map(item => Math.abs(item.expenses)),
+        backgroundColor: [theme.palette.error.main],
+        borderColor: [theme.palette.error.dark],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const trendData = {
+    labels: monthlyData.map(item => item.date),
+    datasets: [
+      {
+        label: 'Net Balance',
+        data: monthlyData.map(item => item.income - Math.abs(item.expenses)),
+        borderColor: theme.palette.primary.main,
+        backgroundColor: theme.palette.primary.light + '40',
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
@@ -142,7 +176,7 @@ const Dashboard: React.FC = () => {
             Income vs Expenses
           </Typography>
           <Box sx={{ height: 300 }}>
-            <IncomeExpenseChart data={monthlyData} />
+            <IncomeExpenseChart data={chartData} />
           </Box>
         </StyledPaper>
       </Grid>
@@ -153,7 +187,7 @@ const Dashboard: React.FC = () => {
             Balance Trend
           </Typography>
           <Box sx={{ height: 300 }}>
-            <TrendLineChart data={monthlyData} />
+            <TrendLineChart data={trendData} />
           </Box>
         </StyledPaper>
       </Grid>

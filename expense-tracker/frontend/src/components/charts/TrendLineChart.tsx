@@ -1,5 +1,4 @@
 import React from 'react';
-import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -9,8 +8,11 @@ import {
   Title,
   Tooltip,
   Legend,
+  ChartOptions,
+  Scale,
   Filler,
 } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import { Box, useTheme } from '@mui/material';
 
 ChartJS.register(
@@ -24,54 +26,39 @@ ChartJS.register(
   Filler
 );
 
-interface ChartData {
-  date: string;
-  income: number;
-  expenses: number;
-}
-
 interface TrendLineChartProps {
-  data: ChartData[];
+  data: {
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      borderColor: string;
+      backgroundColor: string;
+      fill: boolean;
+      tension: number;
+    }[];
+  };
 }
 
-const TrendLineChart: React.FC<TrendLineChartProps> = ({ data }) => {
+export const TrendLineChart: React.FC<TrendLineChartProps> = ({ data }) => {
   const theme = useTheme();
 
-  const chartData = {
-    labels: data.map((item) => {
-      const [year, month] = item.date.split('-');
-      return `${new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', {
-        month: 'short',
-      })} ${year}`;
-    }),
-    datasets: [
-      {
-        label: 'Net Balance',
-        data: data.map((item) => item.income - item.expenses),
-        fill: true,
-        backgroundColor: (context: any) => {
-          const ctx = context.chart.ctx;
-          const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-          gradient.addColorStop(0, theme.palette.primary.light + '40');
-          gradient.addColorStop(1, theme.palette.primary.light + '00');
-          return gradient;
-        },
-        borderColor: theme.palette.primary.main,
-        borderWidth: 2,
-        tension: 0.4,
-        pointRadius: 4,
-        pointBackgroundColor: theme.palette.primary.main,
-        pointBorderColor: theme.palette.background.paper,
-        pointBorderWidth: 2,
-        pointHoverRadius: 6,
-      },
-    ],
-  };
-
-  const options = {
+  const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: theme.palette.divider,
+        },
+        ticks: {
+          color: theme.palette.text.secondary,
+          callback: function(this: Scale, value: string | number) {
+            return `$${typeof value === 'number' ? value.toFixed(0) : value}`;
+          },
+        },
+      },
       x: {
         grid: {
           display: false,
@@ -81,46 +68,32 @@ const TrendLineChart: React.FC<TrendLineChartProps> = ({ data }) => {
           color: theme.palette.text.secondary,
         },
       },
-      y: {
-        grid: {
-          color: theme.palette.divider,
-        },
-        ticks: {
-          color: theme.palette.text.secondary,
-          callback: (value: number) => `$${value.toFixed(0)}`,
-        },
-      },
     },
     plugins: {
       legend: {
-        display: false,
+        position: 'top' as const,
+        labels: {
+          color: theme.palette.text.secondary,
+        },
       },
-      tooltip: {
-        backgroundColor: theme.palette.background.paper,
-        titleColor: theme.palette.text.primary,
-        bodyColor: theme.palette.text.secondary,
-        borderColor: theme.palette.divider,
-        borderWidth: 1,
-        padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            const value = context.raw || 0;
-            return `Balance: $${value.toFixed(2)}`;
-          },
+      title: {
+        display: true,
+        text: 'Spending Trend',
+        color: theme.palette.text.primary,
+        font: {
+          size: 16,
         },
       },
     },
     interaction: {
-      intersect: false,
       mode: 'index' as const,
+      intersect: false,
     },
   };
 
   return (
     <Box width="100%" height="100%">
-      <Line data={chartData} options={options} />
+      <Line data={data} options={options} />
     </Box>
   );
 };
-
-export default TrendLineChart;

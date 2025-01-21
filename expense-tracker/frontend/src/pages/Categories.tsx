@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Typography,
   Button,
   Card,
   CardContent,
   Grid,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
   Chip,
-  TextField,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -20,156 +22,190 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { Category } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { categoryApi } from '../services/api';
-import CategoryForm from '../components/forms/CategoryForm';
+import { CategoryForm } from '../components/forms/CategoryForm';
 
-const Categories: React.FC = () => {
+export const Categories: React.FC = () => {
   const { state, dispatch } = useAppContext();
   const [openForm, setOpenForm] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | undefined>();
-  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        dispatch({ type: 'SET_LOADING', payload: true });
-        const categories = await categoryApi.getAll();
-        dispatch({ type: 'SET_CATEGORIES', payload: categories });
+        const response = await categoryApi.getAll();
+        dispatch({ type: 'SET_CATEGORIES', payload: response });
       } catch (error) {
-        dispatch({ type: 'SET_ERROR', payload: 'Error fetching categories' });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
+        console.error('Error fetching categories:', error);
       }
     };
 
     fetchCategories();
   }, [dispatch]);
 
-  const handleAddCategory = async (
-    category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>
-  ) => {
+  const handleAddCategory = async (data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      const newCategory = await categoryApi.create(category);
-      dispatch({ type: 'ADD_CATEGORY', payload: newCategory });
+      const response = await categoryApi.create(data);
+      dispatch({ type: 'ADD_CATEGORY', payload: response });
+      setOpenForm(false);
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Error adding category' });
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      console.error('Error adding category:', error);
     }
   };
 
-  const handleUpdateCategory = async (
-    category: Omit<Category, 'createdAt' | 'updatedAt'>
-  ) => {
+  const handleUpdateCategory = async (data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!selectedCategory) return;
+    
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      const updatedCategory = await categoryApi.update(category.id, category);
-      dispatch({ type: 'UPDATE_CATEGORY', payload: updatedCategory });
+      const response = await categoryApi.update(selectedCategory.id, data);
+      dispatch({ type: 'UPDATE_CATEGORY', payload: response });
+      setSelectedCategory(null);
+      setOpenForm(false);
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Error updating category' });
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      console.error('Error updating category:', error);
     }
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        dispatch({ type: 'SET_LOADING', payload: true });
-        await categoryApi.delete(id);
-        dispatch({ type: 'DELETE_CATEGORY', payload: id });
-      } catch (error) {
-        dispatch({ type: 'SET_ERROR', payload: 'Error deleting category' });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }
+    try {
+      await categoryApi.delete(id);
+      dispatch({ type: 'DELETE_CATEGORY', payload: id });
+    } catch (error) {
+      console.error('Error deleting category:', error);
     }
   };
 
-  const filteredCategories = state.categories.filter((category) =>
-    category.name.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <Box>
-      <Grid container spacing={3}>
-        <Grid item xs={12} display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4">Categories</Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setSelectedCategory(undefined);
-              setOpenForm(true);
-            }}
-          >
-            Add Category
-          </Button>
-        </Grid>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4">Categories</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => {
+            setSelectedCategory(null);
+            setOpenForm(true);
+          }}
+        >
+          Add Category
+        </Button>
+      </Box>
 
-        <Grid item xs={12}>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <TextField
-                fullWidth
-                size="small"
-                label="Search Categories"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <Typography variant="h6" gutterBottom>
+                Expense Categories
+              </Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Subcategories</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {state.categories
+                      .filter((category) => category.type === 'expense')
+                      .map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell>{category.name}</TableCell>
+                          <TableCell>
+                            {category.subcategories?.map((sub) => (
+                              <Chip
+                                key={sub}
+                                label={sub}
+                                size="small"
+                                variant="outlined"
+                                sx={{ mr: 1, mb: 1 }}
+                              />
+                            ))}
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setSelectedCategory(category);
+                                setOpenForm(true);
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteCategory(category.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12}>
-          <List>
-            {filteredCategories.map((category) => (
-              <ListItem
-                key={category.id}
-                component={Card}
-                sx={{ mb: 2, display: 'block' }}
-              >
-                <CardContent>
-                  <Grid container alignItems="center" spacing={2}>
-                    <Grid item xs>
-                      <Typography variant="h6">{category.name}</Typography>
-                      <Box sx={{ mt: 1 }}>
-                        {category.subcategories.map((subcategory, index) => (
-                          <Chip
-                            key={index}
-                            label={subcategory}
-                            size="small"
-                            variant="outlined"
-                            sx={{ mr: 1, mb: 1 }}
-                          />
-                        ))}
-                      </Box>
-                    </Grid>
-                    <Grid item>
-                      <ListItemSecondaryAction>
-                        <IconButton
-                          edge="end"
-                          onClick={() => {
-                            setSelectedCategory(category);
-                            setOpenForm(true);
-                          }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
-                          onClick={() => handleDeleteCategory(category.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </ListItem>
-            ))}
-          </List>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Income Categories
+              </Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Subcategories</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {state.categories
+                      .filter((category) => category.type === 'income')
+                      .map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell>{category.name}</TableCell>
+                          <TableCell>
+                            {category.subcategories?.map((sub) => (
+                              <Chip
+                                key={sub}
+                                label={sub}
+                                size="small"
+                                variant="outlined"
+                                sx={{ mr: 1, mb: 1 }}
+                              />
+                            ))}
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setSelectedCategory(category);
+                                setOpenForm(true);
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteCategory(category.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
@@ -177,7 +213,7 @@ const Categories: React.FC = () => {
         open={openForm}
         onClose={() => {
           setOpenForm(false);
-          setSelectedCategory(undefined);
+          setSelectedCategory(null);
         }}
         category={selectedCategory}
         onSubmit={selectedCategory ? handleUpdateCategory : handleAddCategory}
@@ -185,5 +221,3 @@ const Categories: React.FC = () => {
     </Box>
   );
 };
-
-export default Categories;

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">{{.Title}}</h1>
+            <nav class="mt-4">
+                <a href="/chat" class="text-blue-600 hover:text-blue-800">Chat Room</a>
+            </nav>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="mb-6">
+                <form id="todo-form" class="flex gap-4">
+                    <input type="text" id="todo-input" 
+                           class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="What needs to be done?">
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Add Todo
+                    </button>
+                </form>
+            </div>
+
+            <ul id="todo-list" class="space-y-3">
+                {{range .Todos}}
+                <li class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg" data-id="{{.ID}}">
+                    <input type="checkbox" {{if .Completed}}checked{{end}}
+                           class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+                    <span class="flex-1 {{if .Completed}}line-through text-gray-500{{end}}">{{.Title}}</span>
+                    <button class="delete-btn px-3 py-1 text-red-600 hover:text-red-800 focus:outline-none">
+                        Delete
+                    </button>
+                </li>
+                {{end}}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const todoForm = document.getElementById('todo-form');
+            const todoInput = document.getElementById('todo-input');
+            const todoList = document.getElementById('todo-list');
+
+            // Add new todo
+            todoForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const title = todoInput.value.trim();
+                if (!title) return;
+
+                try {
+                    const response = await fetch('/api/todos', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({title})
+                    });
+
+                    if (response.ok) {
+                        const todo = await response.json();
+                        const li = createTodoElement(todo);
+                        todoList.appendChild(li);
+                        todoInput.value = '';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+
+            // Handle todo actions (complete/delete)
+            todoList.addEventListener('click', async (e) => {
+                const li = e.target.closest('li');
+                if (!li) return;
+
+                const id = li.dataset.id;
+                
+                if (e.target.matches('input[type="checkbox"]')) {
+                    try {
+                        const response = await fetch(`/api/todos/${id}`, {
+                            method: 'PUT',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({completed: e.target.checked})
+                        });
+
+                        if (response.ok) {
+                            const span = li.querySelector('span');
+                            span.classList.toggle('line-through', e.target.checked);
+                            span.classList.toggle('text-gray-500', e.target.checked);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                }
+
+                if (e.target.matches('.delete-btn')) {
+                    try {
+                        const response = await fetch(`/api/todos/${id}`, {
+                            method: 'DELETE'
+                        });
+
+                        if (response.ok) {
+                            li.remove();
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                }
+            });
+
+            function createTodoElement(todo) {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-4 p-3 bg-gray-50 rounded-lg';
+                li.dataset.id = todo.id;
+                li.innerHTML = `
+                    <input type="checkbox" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+                    <span class="flex-1">${todo.title}</span>
+                    <button class="delete-btn px-3 py-1 text-red-600 hover:text-red-800 focus:outline-none">
+                        Delete
+                    </button>
+                `;
+                return li;
+            }
+        });
+    </script>
+</body>
+</html>

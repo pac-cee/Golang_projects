@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Chat Room</h1>
+            <nav class="mt-4">
+                <a href="/" class="text-blue-600 hover:text-blue-800">Back to Todo List</a>
+            </nav>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div id="chat-container" class="h-96 overflow-y-auto mb-6 space-y-4">
+                <!-- Messages will be inserted here -->
+            </div>
+
+            <form id="message-form" class="flex gap-4">
+                <input type="text" id="username" 
+                       class="w-1/4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Your name">
+                <input type="text" id="message-input" 
+                       class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Type your message...">
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const messageForm = document.getElementById('message-form');
+            const messageInput = document.getElementById('message-input');
+            const usernameInput = document.getElementById('username');
+            const chatContainer = document.getElementById('chat-container');
+
+            // Connect to WebSocket server
+            const ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+            ws.onopen = () => {
+                console.log('Connected to WebSocket server');
+                appendMessage('System', 'Connected to chat room');
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected from WebSocket server');
+                appendMessage('System', 'Disconnected from chat room');
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                appendMessage(message.user, message.content);
+            };
+
+            messageForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const content = messageInput.value.trim();
+                const user = usernameInput.value.trim() || 'Anonymous';
+                
+                if (!content) return;
+
+                const message = {
+                    type: 'message',
+                    content: content,
+                    user: user
+                };
+
+                ws.send(JSON.stringify(message));
+                messageInput.value = '';
+            });
+
+            function appendMessage(user, content) {
+                const div = document.createElement('div');
+                div.className = 'p-3 bg-gray-50 rounded-lg';
+                div.innerHTML = `
+                    <span class="font-bold text-blue-600">${user}:</span>
+                    <span class="ml-2">${content}</span>
+                `;
+                chatContainer.appendChild(div);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            // Store username in localStorage
+            const storedUsername = localStorage.getItem('chatUsername');
+            if (storedUsername) {
+                usernameInput.value = storedUsername;
+            }
+
+            usernameInput.addEventListener('change', () => {
+                localStorage.setItem('chatUsername', usernameInput.value);
+            });
+        });
+    </script>
+</body>
+</html>

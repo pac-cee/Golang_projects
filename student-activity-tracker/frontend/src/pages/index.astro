@@ -1,0 +1,110 @@
+---
+import ActivityForm from '../components/ActivityForm';
+import ActivityList from '../components/ActivityList';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Activity Tracker</title>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900">Student Activity Tracker</h1>
+        <p class="mt-2 text-gray-600">Track your daily activities and manage your time effectively</p>
+      </div>
+
+      <div class="mt-12">
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h2 class="text-xl font-semibold mb-4">Add New Activity</h2>
+          <ActivityForm client:load />
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <h2 class="text-xl font-semibold mb-4">Your Activities</h2>
+          <ActivityList client:load />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activities = [];
+
+    async function fetchActivities() {
+      try {
+        const response = await fetch('http://localhost:8080/api/activities');
+        activities = await response.json();
+        document.dispatchEvent(new CustomEvent('activitiesUpdated', { detail: activities }));
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+      }
+    }
+
+    // Initial fetch
+    fetchActivities();
+
+    // Add event listeners for the ActivityForm component
+    document.addEventListener('submitActivity', async (e) => {
+      try {
+        const response = await fetch('http://localhost:8080/api/activities', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(e.detail),
+        });
+        if (response.ok) {
+          fetchActivities();
+        }
+      } catch (error) {
+        console.error('Error creating activity:', error);
+      }
+    });
+
+    // Add event listeners for the ActivityList component
+    document.addEventListener('startActivity', async (e) => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/activities/${e.detail}/start`, {
+          method: 'PUT',
+        });
+        if (response.ok) {
+          fetchActivities();
+        }
+      } catch (error) {
+        console.error('Error starting activity:', error);
+      }
+    });
+
+    document.addEventListener('completeActivity', async (e) => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/activities/${e.detail}/complete`, {
+          method: 'PUT',
+        });
+        if (response.ok) {
+          fetchActivities();
+        }
+      } catch (error) {
+        console.error('Error completing activity:', error);
+      }
+    });
+
+    document.addEventListener('deleteActivity', async (e) => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/activities/${e.detail}`, {
+          method: 'DELETE',
+        });
+        if (response.ok) {
+          fetchActivities();
+        }
+      } catch (error) {
+        console.error('Error deleting activity:', error);
+      }
+    });
+  </script>
+</body>
+</html>

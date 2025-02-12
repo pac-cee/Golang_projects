@@ -64,20 +64,22 @@ func isValidChoice(choice string) bool {
 }
 
 func calculate(operation string, a, b float64) float64 {
-	switch operation {
-	case "1":
-		return a + b
-	case "2":
-		return a - b
-	case "3":
-		return a * b
-	case "4":
-		if b == 0 {
-			fmt.Println("Error: Division by zero!")
-			return 0
-		}
-		return a / b
-	default:
-		return 0
+	// Using map for operations
+	ops := map[string]func(float64, float64) float64{
+		"1": func(a, b float64) float64 { return a + b },
+		"2": func(a, b float64) float64 { return a - b },
+		"3": func(a, b float64) float64 { return a * b },
+		"4": func(a, b float64) float64 {
+			if b == 0 {
+				fmt.Println("Error: Division by zero!")
+				return 0
+			}
+			return a / b
+		},
 	}
+
+	if fn, ok := ops[operation]; ok {
+		return fn(a, b)
+	}
+	return 0
 }

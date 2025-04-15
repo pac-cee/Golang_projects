@@ -1,0 +1,33 @@
+body {
+  font-family: system-ui, sans-serif;
+  background: #181A20;
+  color: #F4F4F4;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 600px;
+  margin: 40px auto;
+  background: #23272F;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+  padding: 32px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+#price {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+canvas {
+  margin: 0 auto;
+  display: block;
+}

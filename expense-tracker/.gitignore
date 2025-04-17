@@ -1,0 +1,85 @@
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Output directories
+bin/
+dist/
+
+# Go workspace file
+go.work
+
+# Environment variables
+.env
+*.env
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+vendor/
+
+# Logs
+*.log
+logs/
+
+# MongoDB data directory
+data/
+mongodb/
+
+# Frontend specific
+../node_modules/
+node_modules/
+coverage/
+build/
+.next/
+.nuxt/
+dist/
+.cache/
+
+# Debug files
+debug/
+__debug_bin
+
+# Binary files
+*.bin
+
+# Test binary, built with 'go test -c'
+*.test
+
+# Output of the go coverage tool
+*.out
+*.prof
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Local development configuration
+config.local.yaml
+*.local.yaml
+*.local.yml
+
+# Air live reload
+tmp/
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+
+# Project specific
+expense-tracker/backend-vanilla/tmp/
+expense-tracker/frontend-vanilla/node_modules/

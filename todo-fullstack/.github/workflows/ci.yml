@@ -1,0 +1,69 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Install dependencies
+        run: go mod tidy
+      - name: Run tests
+        run: go test ./...
+      - name: Build Docker image
+        run: docker build -t todo-backend .
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: |
+          if [ -f package.json ] && grep -q 'test' package.json; then npm test -- --watchAll=false; else echo "No tests"; fi
+      - name: Build Docker image
+        run: docker build -t todo-frontend .
+
+  deploy-production:
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Production
+        run: |
+          echo "Deploying to production..."
+          # Replace with your provider's deployment command
+          docker-compose -f docker-compose.yml up -d --build
+
+  deploy-staging:
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Staging
+        run: |
+          echo "Deploying to staging..."
+          # Replace with your provider's deployment command
+          docker-compose -f docker-compose.yml -p staging up -d --build

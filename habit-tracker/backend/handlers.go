@@ -46,3 +46,11 @@ func markHabitHandler(c *gin.Context) {
 	// TODO: Implement marking habit as done
 	c.JSON(http.StatusOK, gin.H{"message": "habit marked as done"})
 }
+
+// Get a single habit by ID
+func getHabitByIDHandler(c *gin.Context) {
+	// TODO: Implement fetching a single habit by ID
+	id := c.Param("id")
+	// Example: fetch habit from DB using id
+	c.JSON(http.StatusOK, gin.H{"habit_id": id, "habit": nil})
+}
